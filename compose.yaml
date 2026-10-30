@@ -1,0 +1,56 @@
+services:
+  gateway:
+    build: ./gateway
+    environment:
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-aktin}
+      DB_USER: ${DB_USER:-user}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      DB_SSLROOTCERT: ${DB_SSLROOTCERT:-}
+      GATEWAY_API_KEY: ${GATEWAY_API_KEY:?Set GATEWAY_API_KEY}
+      MIN_CELL_COUNT: ${MIN_CELL_COUNT:-5}
+    ports:
+      # Development access only. Remove this mapping after the API is connected.
+      - "127.0.0.1:8001:8000"
+    extra_hosts:
+      # Enables access to a database running on the host computer.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Stores local audit records independently of the container.
+      - gateway_audit:/app/audit
+    networks:
+      - service_network
+      - database_network
+
+  postgres:
+    image: postgres:16
+    profiles: ["local-db"]
+    environment:
+      POSTGRES_DB: aktin
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Set admin password}
+      QUERY_RO_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    volumes:
+      # Persistent PostgreSQL data.
+      - pgdata:/var/lib/postgresql/data
+
+      # Executed only when the database volume is initialized.
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d aktin"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - database_network
+
+networks:
+  service_network:
+  database_network:
+    internal: true
+
+volumes:
+  pgdata:
+  gateway_audit:

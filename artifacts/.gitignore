@@ -1,0 +1,16 @@
+# Credentials and local configuration.
+.env
+
+# Python-generated files.
+__pycache__/
+.pytest_cache/
+.venv/
+
+# Local research artifacts.
+artifacts/*
+
+# Keep the artifacts directory in Git.
+!artifacts/.gitkeep
+
+# Operating-system files.
+.DS_Store
