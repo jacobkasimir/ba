@@ -7,12 +7,12 @@ Author: J. Tietz
 
 | ID | Date | Decision | Status |
 |---|---|---|---|
-| D-001 | 2026-10-08 | Python 3.12 for the prototype | Accepted |
-| D-002 | 2026-10-08 | Virtual environment in `prototype/.venv`, versions saved with `pip freeze` | Accepted |
+| D-001 | 2026-10-08 | Python 3.12 for the prototype | Open |
+| D-002 | 2026-10-08 | Virtual environment in `prototype/.venv`, versions saved with `pip freeze` | Open |
 | D-003 | 2026-10-08 | Python backend with FastAPI | Accepted |
 | D-004 | 2026-10-08 | Frontend in plain HTML/CSS/JavaScript without build step | Accepted |
 | D-005 | 2026-10-08 | MCP Python SDK pinned to `mcp<2` | Accepted |
-| D-006 | 2026-10-08 | MCP server configuration in `config/mcp_servers.json`; local stdio and remote HTTP transports | Superseded by D-019 |
+| D-006 | 2026-10-08 | MCP server configuration in `config/mcp_servers.json`; local stdio and remote HTTP transports | Accepted; local stdio superseded by D-019 |
 | D-007 | 2026-10-08 | Build order: UI, backend, logging, MCP, only then the LLM; echo mode with `/tool` command | Accepted |
 | D-008 | 2026-10-08 | Text completion from a fixed phrase list, not from an LLM | Accepted |
 | D-009 | 2026-10-08 | Logs as JSON lines file, shown in the UI via a read-only API | Accepted |
@@ -33,7 +33,7 @@ Author: J. Tietz
 ---
 
 ## D-001 Python 3.12 for the prototype
-**Date:** 2026-10-08 **Status:** Accepted
+**Date:** 2026-10-08 **Status:** Open
 
 **Context:** The system Python on the development machine (macOS) is 3.9.6. Recent versions of the MCP Python SDK need a newer Python.
 
@@ -48,8 +48,10 @@ Author: J. Tietz
 
 **Consequences:** `python3` still points to 3.9.6 outside the virtual environment, so commands must use `python3.12` or the activated venv. The Python version is documented as part of the reproducibility information.
 
+**Implementation status:** The gateway and MCP Dockerfiles use Python 3.12 images. The planned local development environment and the machine-specific interpreter details in this decision are not established by the repository.
+
 ## D-002 Virtual environment and dependency file
-**Date:** 2026-10-08 **Status:** Accepted
+**Date:** 2026-10-08 **Status:** Open
 
 **Context:** Reproducibility of the evaluation is a stated goal of the thesis.
 
@@ -63,6 +65,8 @@ Author: J. Tietz
 **Reason:** `pip freeze` pins the exact versions used for the evaluation with no extra tooling.
 
 **Consequences:** The file is long and contains transitive dependencies. It must be regenerated whenever a package changes.
+
+**Implementation status:** The current services run as Docker Compose containers and use service-specific range-based requirements files. There is no tracked `prototype/.venv` or project-wide frozen `requirements.txt`; this open decision has not been implemented as written. `gateway/requirements.txt` and `mcp_servers/requirements.txt` are not exact locks.
 
 ## D-003 Python backend with FastAPI
 **Date:** 2026-10-08 **Status:** Accepted
@@ -81,6 +85,8 @@ Author: J. Tietz
 
 **Consequences:** The frontend is a separate static application (see D-004).
 
+**Implementation status:** `gateway/app/main.py` is a FastAPI query gateway, but no chat backend or application-side MCP client is present. The accepted chat-backend decision remains unimplemented.
+
 ## D-004 Frontend in plain HTML, CSS and JavaScript
 **Date:** 2026-10-08 **Status:** Accepted
 
@@ -95,6 +101,8 @@ Author: J. Tietz
 **Reason:** All requirements are small enough for plain JavaScript, and fewer moving parts make the prototype easier to explain and maintain.
 
 **Consequences:** UI code must be kept tidy by hand. Model output is inserted with `textContent` and never as HTML, which prevents script injection through responses.
+
+**Implementation status:** No frontend directory or static UI files are present. This accepted frontend design remains pending.
 
 ## D-005 MCP Python SDK pinned to `mcp<2`
 **Date:** 2026-10-08 **Status:** Accepted
@@ -111,8 +119,10 @@ Author: J. Tietz
 
 **Consequences:** The prototype is tied to an older SDK line. A migration to 2.x is documented as future work. The version must be named in the thesis.
 
+**Implementation status:** `mcp_servers/requirements.txt` constrains the SDK to `mcp>=1.20,<2`, not to one exact version. `docs/mcp-runtime-requirements.txt` records `mcp==1.30.0`, but the MCP Dockerfile installs the range-based requirements file rather than that snapshot. The major-version constraint is in effect; exact runtime locking is not.
+
 ## D-006 MCP server configuration and transports
-**Date:** 2026-10-08 **Status:** Accepted
+**Date:** 2026-10-08 **Status:** Accepted; local stdio superseded by D-019
 
 **Context:** The chat should connect to one or several MCP servers, local or remote, now or later.
 
@@ -125,6 +135,8 @@ Author: J. Tietz
 **Reason:** Adding a database becomes a configuration change, and a single failing server does not take down the system.
 
 **Consequences:** Each server needs its own read-only role, allow-lists and minimum cell count. The HTTP branch is untested until a real remote server is connected.
+
+**Implementation status:** `config/mcp_servers.json` lists three Streamable HTTP endpoints. There is no application-side configuration loader or MCP client. `mcp_servers/tests/check_mcp_tool.py` loads configuration for diagnostics, and `mcp_servers/smoke_test.py` contains hard-coded connection details; neither is an application loader. The context servers have no database roles and do not execute SQL.
 
 ## D-007 Build order and echo mode
 **Date:** 2026-10-08 **Status:** Accepted
@@ -139,6 +151,8 @@ Author: J. Tietz
 **Reason:** Each layer can be tested on its own, which also supports the error analysis.
 
 **Consequences:** The `/tool` command bypasses the LLM and must be removed or restricted before the usability study.
+
+**Implementation status:** No chat application, echo mode, or `/tool` command is present. This remains an accepted build plan, not a description of current behavior.
 
 ## D-008 Text completion from a fixed phrase list
 **Date:** 2026-10-08 **Status:** Accepted
@@ -155,6 +169,8 @@ Author: J. Tietz
 
 **Consequences:** The phrase list must be maintained. It could be derived from the evaluation scenarios, and this must be disclosed to avoid biasing the evaluation.
 
+**Implementation status:** The frontend and `frontend/suggestions.json` are absent; the accepted completion feature is not implemented.
+
 ## D-009 Logging as JSON lines
 **Date:** 2026-10-08 **Status:** Accepted
 
@@ -170,6 +186,8 @@ Author: J. Tietz
 **Reason:** Simple, human-readable, easy to analyse with scripts, and suitable for the audit requirement.
 
 **Consequences:** The whole file is read on each request, which is fine at thesis scale. Logs may contain user questions and results, so they must never be committed.
+
+**Implementation status:** The application JSONL log and read-only UI API are absent. The gateway separately stores enforcement audit events in SQLite (see D-020); those records are not the conversation log described here.
 
 ## D-010 Deterministic safety layer, independent of the LLM
 **Date:** 2026-10-08 **Status:** Accepted
@@ -202,6 +220,8 @@ Author: J. Tietz
 
 **Consequences:** No real patient data, credentials or raw logs may be committed. Evaluation states are tagged.
 
+**Implementation status:** The current root contains `artifacts/`, `config/`, `database/`, `docs/`, `evaluation/`, `gateway/`, and `mcp_servers/`. `evaluation/` contains empty `development/` and `frozen_test/` directories. The planned `expose/`, `thesis/`, `prototype/`, and `prompts/` directories are absent, as is a root `.gitignore` (there is an `artifacts/.gitignore`). This entry records the original structure plan rather than the current layout.
+
 ## D-012 Usability measured with SUS
 **Date:** 2026-10-08 **Status:** Accepted
 
@@ -227,6 +247,8 @@ Author: J. Tietz
 
 **To decide:** agree the value with the supervisors and AKTIN, then record it here with the reason. Until then, the value is read from configuration (`MIN_CELL_COUNT`) and not hard-coded.
 
+**Implementation status:** The gateway currently defaults `MIN_CELL_COUNT` to 5 and refuses configured values below 5. This demonstration setting does not settle the governance decision for the evaluation.
+
 ## D-014 Synthetic test data and concept hierarchy
 **Date:** 2026-10-08 **Status:** Open
 
@@ -235,6 +257,8 @@ Author: J. Tietz
 **Options:** a test environment or dump provided by AKTIN; synthetic data generated for the thesis; the i2b2 demo data (weaker match with AKTIN concepts).
 
 **To decide:** ask the supervisors what exists. The source and generation method must be documented, because it limits the generalisability of the results.
+
+**Implementation status:** `database/init/01-schema.sql` creates only `public.patient_dimension(patient_num)` with 20 synthetic rows, and the schema MCP metadata identifies it as `synthetic-connectivity-fixture`. It is a connectivity fixture, not the planned synthetic AKTIN/i2b2 dataset or concept hierarchy. The `evaluation/development/` and `evaluation/frozen_test/` directories are empty; this source decision remains open.
 
 ## D-015 LLM provider and model
 **Date:** 2026-10-08 **Status:** Open
@@ -256,6 +280,8 @@ Author: J. Tietz
 
 **Consequences:** Mock mode supports a bounded phrase set documented in `docs/mock-mode.md`. Wording outside that set may require rephrasing even when its meaning is reasonable. Evaluation scenario E08 checks that unknown input does not fall through to a count.
 
+**Implementation status:** No mock planner or chat application is present, so this accepted behavior is not currently implemented in the repository.
+
 ## D-017 Multi-MCP Server Architecture
 **Date:** 2026-10-13 **Status:** Accepted 
 
@@ -266,7 +292,7 @@ Author: J. Tietz
 **Reason:** The study showed that an iterative approach, with multiple servers for different tasks improves efficiency over all known benchmarks in Text2SQL generation. Regardless of the model that is used a LLM. Before handling the validation of the SQL query, the first steps entirely concentrate on semantical correctness.
 
 ## D-018 Three local MCP servers for separate context responsibilities
-**Date:** YYYY-MM-DD **Status:** Accepted
+**Date:** 2026-11-02 **Status:** Accepted
 
 **Context:** The prototype uses multiple MCP servers rather than one combined server (D-017). The current development database is a small synthetic connectivity fixture; the synthetic AKTIN/i2b2 dataset and concept hierarchy are not yet available (D-014).
 
@@ -287,7 +313,7 @@ Initially, the schema server describes only the current test database. Concept-h
 
 
 ## D-019 Streamable HTTP for local Dockerized MCP servers
-**Date:** YYYY-MM-DD **Status:** Accepted
+**Date:** 2026-11-02 **Status:** Accepted
 
 **Context:** D-006 specifies stdio for local servers and HTTP for remote servers. In this implementation, the local MCP servers run as separate Docker Compose services. The application needs to communicate with each service over the Docker network.
 
@@ -309,9 +335,11 @@ Do not publish MCP service ports on the host unless a documented local debugging
 
 **Consequences:** The application needs a separate MCP client connection for each server. Container DNS, service readiness, allowed-host configuration, and transport errors must be tested. Host validation is not authentication, and Docker network membership is not a complete security boundary. These endpoints must not be exposed to an untrusted network without additional controls.
 
+**Implementation status:** The three services and Streamable HTTP endpoints are configured in Compose, but no application client connects to them. The diagnostic smoke test does connect and invokes tools sequentially; it is not integrated with an application or test runner.
+
 
 ## D-020 The query gateway remains the enforcement authority
-**Date:** YYYY-MM-DD **Status:** Accepted
+**Date:** 2026-11-01 **Status:** Accepted
 
 **Context:** The schema, constraints, and examples servers provide information to the application and future LLM. Context can be incomplete, stale, or influenced by untrusted input. The exposé requires safety checks to be independent of the LLM (D-010).
 
@@ -334,9 +362,11 @@ The LLM and MCP servers do not receive database credentials. No MCP context serv
 
 **Consequences:** Changes to MCP descriptions do not change gateway permissions. Gateway policy changes require their own tests and review. The prototype must not describe MCP-based instructions as a security control.
 
+**Implementation status:** `gateway/app/policy.py`, `gateway/app/execution.py`, and `gateway/app/audit.py` implement the enforcement boundary for one count-query structure. Audit records are persisted in SQLite at `/app/audit/events.sqlite` by default; application conversation logging remains separate and unimplemented under D-009.
+
 
 ## D-021 Curated, versioned JSON metadata with no database access
-**Date:** YYYY-MM-DD **Status:** Accepted
+**Date:** 2026-11-02 **Status:** Accepted
 
 **Context:** The initial schema is small, and the synthetic AKTIN/i2b2 schema and concept source remain to be confirmed (D-014). MCP context should be reproducible and reviewable.
 
@@ -360,7 +390,7 @@ Development examples must not contain frozen final-test questions, reference out
 
 
 ## D-022 Independent server and integration testing
-**Date:** YYYY-MM-DD **Status:** Accepted
+**Date:** 2026-11-02 **Status:** Accepted
 
 **Context:** Separate MCP services create separate startup, network, and tool-invocation failure modes. The application should be able to distinguish a context-service failure from a model or gateway failure.
 
@@ -377,3 +407,5 @@ The application will handle an unavailable context server explicitly and log the
 **Reason:** Layered tests make service, protocol, and orchestration failures distinguishable.
 
 **Consequences:** Unit tests can run without PostgreSQL or a model. Integration tests require the MCP services and their Docker network. The application must not make a successful query depend on fabricated context when an essential context service is unavailable.
+
+**Implementation status:** `mcp_servers/tests/test_context.py` calls server tool functions directly. `mcp_servers/smoke_test.py` performs protocol initialization, discovery, and invocation against the three services sequentially, and fails if any server is unavailable. Independent degraded-mode behavior is not implemented because there is no application client.
