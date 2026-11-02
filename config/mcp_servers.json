@@ -3,17 +3,20 @@
     "schema": {
       "transport": "streamable_http",
       "url": "http://mcp-schema:8000/mcp",
-      "expected_tool": "get_schema"
+      "tools": ["get_schema"],
+      "timeout_seconds": 15
     },
     "constraints": {
       "transport": "streamable_http",
       "url": "http://mcp-constraints:8000/mcp",
-      "expected_tool": "get_query_policy"
+      "tools": ["get_query_policy"],
+      "timeout_seconds": 15
     },
     "examples": {
       "transport": "streamable_http",
       "url": "http://mcp-examples:8000/mcp",
-      "expected_tool": "get_examples"
+      "tools": ["get_examples"],
+      "timeout_seconds": 15
     }
   }
 }
