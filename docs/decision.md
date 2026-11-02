@@ -12,7 +12,7 @@ Author: J. Tietz
 | D-003 | 2026-10-08 | Python backend with FastAPI | Accepted |
 | D-004 | 2026-10-08 | Frontend in plain HTML/CSS/JavaScript without build step | Accepted |
 | D-005 | 2026-10-08 | MCP Python SDK pinned to `mcp<2` | Accepted |
-| D-006 | 2026-10-08 | MCP server configuration in `config/mcp_servers.json`; local stdio and remote HTTP transports | Superseded |
+| D-006 | 2026-10-08 | MCP server configuration in `config/mcp_servers.json`; local stdio and remote HTTP transports | Superseded by D-019 |
 | D-007 | 2026-10-08 | Build order: UI, backend, logging, MCP, only then the LLM; echo mode with `/tool` command | Accepted |
 | D-008 | 2026-10-08 | Text completion from a fixed phrase list, not from an LLM | Accepted |
 | D-009 | 2026-10-08 | Logs as JSON lines file, shown in the UI via a read-only API | Accepted |
@@ -24,11 +24,11 @@ Author: J. Tietz
 | D-015 | 2026-10-08 | LLM provider and model, local versus external | Open |
 | D-016 | 2026-10-13 | Unrecognized mock-mode input asks for clarification instead of defaulting to a case count | Accepted |
 | D-017 | 2026-10-13 | Multiple MCP Servers instead of one | Accepted |
-| D-018 | YYYY-MM-DD | Three local MCP servers: schema/concepts, constraints, and examples; each serves curated context only | Accepted |
-| D-019 | YYYY-MM-DD | Use Streamable HTTP between locally Dockerized MCP servers and the application; this supersedes the local-stdio transport choice in D-006 for these services | Accepted |
-| D-020 | YYYY-MM-DD | MCP context is informational; the deterministic query gateway remains the sole authority for SQL validation, execution, suppression, and audit | Accepted |
-| D-021 | YYYY-MM-DD | MCP context is versioned, reviewed JSON metadata; MCP servers have no database credentials and do not execute SQL | Accepted |
-| D-022 | YYYY-MM-DD | Test each MCP server independently, then test MCP discovery and invocation across containers; one server being unavailable must not prevent the others from being used | Accepted |
+| D-018 | 2026-11-02 | Three local MCP servers: schema/concepts, constraints, and examples; each serves curated context only | Accepted |
+| D-019 | 2026-11-02 | Use Streamable HTTP between locally Dockerized MCP servers and the application; this supersedes the local-stdio transport choice in D-006 for these services | Accepted |
+| D-020 | 2026-11-01 | MCP context is informational; the deterministic query gateway remains the sole authority for SQL validation, execution, suppression, and audit | Accepted |
+| D-021 | 2026-11-02 | MCP context is versioned, reviewed JSON metadata; MCP servers have no database credentials and do not execute SQL | Accepted |
+| D-022 | 2026-11-02 | Test each MCP server independently, then test MCP discovery and invocation across containers; one server being unavailable must not prevent the others from being used | Accepted |
 
 ---
 

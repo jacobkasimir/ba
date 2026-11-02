@@ -1,0 +1,19 @@
+{
+  "servers": {
+    "schema": {
+      "transport": "streamable_http",
+      "url": "http://mcp-schema:8000/mcp",
+      "expected_tool": "get_schema"
+    },
+    "constraints": {
+      "transport": "streamable_http",
+      "url": "http://mcp-constraints:8000/mcp",
+      "expected_tool": "get_query_policy"
+    },
+    "examples": {
+      "transport": "streamable_http",
+      "url": "http://mcp-examples:8000/mcp",
+      "expected_tool": "get_examples"
+    }
+  }
+}
