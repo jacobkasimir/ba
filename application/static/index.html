@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>AKTIN Prototype — MCP Workspace</title>
+
+  <!-- FastAPI will serve these files under /static/. -->
+  <link rel="stylesheet" href="/static/style.css">
+
+  <!-- defer waits until the HTML has been parsed before running JS. -->
+  <script src="/static/app.js" defer></script>
+</head>
+
+<body>
+  <div class="workspace">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">LOCAL RESEARCH PROTOTYPE</p>
+        <h1>AKTIN MCP Workspace</h1>
+        <p class="subtitle">
+          Test the connection between the browser, FastAPI,
+          and the three context servers.
+        </p>
+      </div>
+
+      <span class="badge" id="application-status">
+        Application not checked
+      </span>
+    </header>
+
+    <section class="notice" aria-label="Current implementation limits">
+      <strong>Development mode: echo and context tools only.</strong>
+      <p>
+        No LLM is connected through this interface.
+        These requests do not execute SQL.
+        Do not enter patient names, identifiers, or other personal data.
+      </p>
+    </section>
+
+    <div class="layout">
+      <main class="chat-panel">
+        <div class="section-header">
+          <h2>Messages</h2>
+          <button id="clear-button" class="secondary-button" type="button">
+            Clear display
+          </button>
+        </div>
+
+        <!-- JavaScript adds message elements here using textContent. -->
+        <div
+          id="messages"
+          class="messages"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-label="Conversation"
+        >
+          <p id="empty-message" class="muted">
+            Send a normal message to test echo mode, or select a context
+            tool below.
+          </p>
+        </div>
+
+        <div class="tool-shortcuts" aria-label="Development tool commands">
+          <!-- These buttons fill the input; they do not submit immediately. -->
+          <button
+            class="secondary-button"
+            type="button"
+            data-command="/tool schema__get_schema {}"
+          >
+            Schema
+          </button>
+
+          <button
+            class="secondary-button"
+            type="button"
+            data-command="/tool constraints__get_query_policy {}"
+          >
+            Constraints
+          </button>
+
+          <button
+            class="secondary-button"
+            type="button"
+            data-command="/tool examples__get_examples {}"
+          >
+            Examples
+          </button>
+        </div>
+
+        <form id="message-form">
+          <label for="message-input">Message or development command</label>
+
+          <textarea
+            id="message-input"
+            rows="3"
+            maxlength="4000"
+            placeholder="Hello, or /tool schema__get_schema {}"
+            required
+          ></textarea>
+
+          <div class="composer-footer">
+            <span class="muted">
+              Enter to send · Shift + Enter for a new line
+            </span>
+
+            <button id="send-button" class="primary-button" type="submit">
+              Send
+            </button>
+          </div>
+        </form>
+
+        <p id="request-status" class="muted" role="status"></p>
+      </main>
+
+      <aside class="status-panel">
+        <div class="section-header">
+          <h2>MCP services</h2>
+
+          <button
+            id="refresh-status"
+            class="secondary-button"
+            type="button"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <p class="muted">
+          Availability is checked through the FastAPI application.
+          It does not indicate database readiness.
+        </p>
+
+        <ul id="server-statuses" class="server-list"></ul>
+
+        <p id="status-message" class="muted" role="status"></p>
+
+        <hr>
+
+        <h3>Request path</h3>
+        <ol class="request-path">
+          <li>Browser sends a message to FastAPI.</li>
+          <li>FastAPI recognizes an allowed development command.</li>
+          <li>The application calls the configured MCP tool.</li>
+          <li>The browser displays the returned metadata.</li>
+        </ol>
+      </aside>
+    </div>
+  </div>
+</body>
+</html>

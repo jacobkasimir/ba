@@ -10,6 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from .event_log import EventLog
 from .mcp_client import MCPManager, MCPUnavailable, UnknownTool
 
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 class ChatRequest(BaseModel):
     """A bounded development chat message."""
@@ -87,6 +89,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+STATIC_DIRECTORY = Path(__file__).resolve().parent.parent / "static"
+
+app.mount("/static", StaticFiles(directory=str(STATIC_DIRECTORY)), name="static")
+
+@app.get("/", include_in_schema=False)
+def frontend():
+    """Serve the browser UI from the same origin as the API."""
+
+    return FileResponse(
+        STATIC_DIRECTORY / "index.html",
+        media_type="text/html",
+
+        # Helpful during development so HTML updates are revalidated.
+        headers={"Cache-Control": "no-cache"},
+    )
 
 @app.get("/health/live")
 def live():

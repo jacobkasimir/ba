@@ -9,6 +9,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+# Package the frontend together with the FastAPI application.
+COPY static ./static
 
 RUN useradd --create-home appuser \
     && mkdir -p /app/logs \

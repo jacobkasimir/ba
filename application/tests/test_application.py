@@ -170,3 +170,39 @@ def test_status_reports_each_server(client, monkeypatch):
 
     assert response.status_code == 200
     assert len(response.json()["servers"]) == 2
+
+def test_frontend_index_is_served(client):
+    """The browser entry point must return the HTML document."""
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert 'id="message-form"' in response.text
+    assert "/static/app.js" in response.text
+
+
+def test_frontend_javascript_is_served(client):
+    """The browser must be able to download the frontend logic."""
+
+    response = client.get("/static/app.js")
+
+    assert response.status_code == 200
+    assert 'const CHAT_URL = "/api/chat"' in response.text
+
+
+def test_frontend_stylesheet_is_served(client):
+    """The stylesheet must be available from the same application."""
+
+    response = client.get("/static/style.css")
+
+    assert response.status_code == 200
+    assert "text/css" in response.headers["content-type"]
+
+
+def test_unknown_static_file_returns_404(client):
+    """Missing assets must not masquerade as successful HTML responses."""
+
+    response = client.get("/static/does-not-exist.js")
+
+    assert response.status_code == 404
