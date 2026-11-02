@@ -1,3 +1,6 @@
+# MCP runtime dependency snapshot (exact versions from the recorded environment).
+# The MCP Dockerfile installs mcp_servers/requirements.txt instead; that file
+# specifies version ranges, including mcp>=1.20,<2.
 annotated-types==0.8.0
 anyio==4.16.0
 attrs==26.1.0
