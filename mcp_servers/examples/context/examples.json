@@ -1,0 +1,13 @@
+{
+  "context_version": "examples-demo-v1",
+  "dataset_id": "synthetic-connectivity-fixture",
+  "examples": [
+    {
+      "id": "development-count-01",
+      "usage": "development_only",
+      "question": "How many synthetic patients are in the test dataset?",
+      "sql": "SELECT COUNT(*) FROM public.patient_dimension",
+      "explanation": "Counts rows in the synthetic patient dimension."
+    }
+  ]
+}

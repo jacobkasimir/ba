@@ -24,6 +24,66 @@ services:
       - service_network
       - database_network
 
+  mcp-schema:
+    build:
+      context: ./mcp_servers
+      target: schema
+
+    networks:
+      - service_network
+
+    # Prevent modifications to the container's main filesystem.
+    read_only: true
+
+    # Provide writable temporary space if a dependency needs it.
+    tmpfs:
+      - /tmp
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+
+  mcp-constraints:
+    build:
+      context: ./mcp_servers
+      target: constraints
+
+    networks:
+      - service_network
+
+    read_only: true
+
+    tmpfs:
+      - /tmp
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+
+  mcp-examples:
+    build:
+      context: ./mcp_servers
+      target: examples
+
+    networks:
+      - service_network
+
+    read_only: true
+
+    tmpfs:
+      - /tmp
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
   postgres:
     image: postgres:16
     profiles: ["local-db"]

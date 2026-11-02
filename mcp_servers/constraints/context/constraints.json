@@ -1,0 +1,24 @@
+{
+  "context_version": "constraints-demo-v1",
+  "dataset_id": "synthetic-connectivity-fixture",
+  "authority": "informational_only",
+  "policy": {
+    "version": "demo-patient-count-v1",
+    "supported_operation": "patient_count",
+    "supported_sql": "SELECT COUNT(*) FROM public.patient_dimension",
+    "restrictions": [
+      "Submit exactly one SQL statement.",
+      "Only the documented count-query structure is supported.",
+      "Do not return identifiers or patient-level values.",
+      "Do not add filters, joins, grouping, aliases, limits, or subqueries.",
+      "Do not modify the database.",
+      "The independent gateway validates every proposal."
+    ],
+    "output_policy": {
+      "enforced_by": "query-gateway",
+      "minimum_cell_count_source": "gateway runtime configuration",
+      "suppressed_value": null,
+      "interpretation": "A suppressed value is not zero and must not be reconstructed."
+    }
+  }
+}

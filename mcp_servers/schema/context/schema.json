@@ -1,0 +1,23 @@
+{
+  "context_version": "schema-demo-v1",
+  "dataset_id": "synthetic-connectivity-fixture",
+  "dataset": {
+    "description": "A small synthetic development fixture, not a complete AKTIN/i2b2 dataset.",
+    "database_engine": "PostgreSQL",
+    "schema": "public",
+    "tables": [
+      {
+        "name": "patient_dimension",
+        "description": "One row per synthetic patient in the fixture.",
+        "columns": [
+          {
+            "name": "patient_num",
+            "type": "bigint",
+            "primary_key": true,
+            "description": "Synthetic identifier. It must not be projected into patient-level output."
+          }
+        ]
+      }
+    ]
+  }
+}
