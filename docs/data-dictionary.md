@@ -20,9 +20,11 @@ relationships, or event tables are defined here.
 
 The schema MCP context describes the same table and identifies the dataset as
 `synthetic-connectivity-fixture`. The database initialization only runs when a
-new PostgreSQL data volume is initialized. The bundled role/database setup has
-inconsistent names; consult [Operations](operations.md#compose-database-initialization)
-before treating the local database as initialized.
+new PostgreSQL data volume is initialized. The current Compose configuration
+passes matching database and role-password values to the initialization
+scripts. Existing volumes are not updated automatically if those values or
+scripts change; consult [Operations](operations.md#configuration) before
+reusing a database volume.
 
 ## Evaluation data
 

@@ -85,7 +85,7 @@ Author: J. Tietz
 
 **Consequences:** The frontend is a separate static application (see D-004).
 
-**Implementation status:** `gateway/app/main.py` is a FastAPI query gateway, but no chat backend or application-side MCP client is present. The accepted chat-backend decision remains unimplemented.
+**Implementation status:** `application/app/main.py` is the FastAPI browser application and echo/MCP chat backend. `application/app/mcp_client.py` provides the application-side MCP client, and `application/app/query_api.py` delegates explicit SQL proposals to the separate query gateway. No LLM-backed chat is implemented.
 
 ## D-004 Frontend in plain HTML, CSS and JavaScript
 **Date:** 2026-10-08 **Status:** Accepted
@@ -102,7 +102,7 @@ Author: J. Tietz
 
 **Consequences:** UI code must be kept tidy by hand. Model output is inserted with `textContent` and never as HTML, which prevents script injection through responses.
 
-**Implementation status:** No frontend directory or static UI files are present. This accepted frontend design remains pending.
+**Implementation status:** The application serves a plain HTML/CSS/JavaScript frontend from `application/static/`; there is no build step. The UI includes bilingual text, theme and display preferences, suggestions, MCP tool shortcuts, and a separate query proposal view.
 
 ## D-005 MCP Python SDK pinned to `mcp<2`
 **Date:** 2026-10-08 **Status:** Accepted
@@ -136,7 +136,7 @@ Author: J. Tietz
 
 **Consequences:** Each server needs its own read-only role, allow-lists and minimum cell count. The HTTP branch is untested until a real remote server is connected.
 
-**Implementation status:** `config/mcp_servers.json` lists three Streamable HTTP endpoints. There is no application-side configuration loader or MCP client. `mcp_servers/tests/check_mcp_tool.py` loads configuration for diagnostics, and `mcp_servers/smoke_test.py` contains hard-coded connection details; neither is an application loader. The context servers have no database roles and do not execute SQL.
+**Implementation status:** `config/mcp_servers.json` lists three Streamable HTTP endpoints. `application/app/mcp_client.py` loads this configuration, discovers and invokes configured tools, and reports servers independently. The context servers have no database roles and do not execute SQL.
 
 ## D-007 Build order and echo mode
 **Date:** 2026-10-08 **Status:** Accepted
@@ -152,14 +152,14 @@ Author: J. Tietz
 
 **Consequences:** The `/tool` command bypasses the LLM and must be removed or restricted before the usability study.
 
-**Implementation status:** No chat application, echo mode, or `/tool` command is present. This remains an accepted build plan, not a description of current behavior.
+**Implementation status:** Ordinary messages use echo mode. When `ENABLE_DEBUG_TOOLS=true`, `/tool <server>__<tool> {json}` invokes an allowed MCP context tool. The browser exposes individual tool shortcuts. No LLM is connected.
 
 ## D-008 Text completion from a fixed phrase list
 **Date:** 2026-10-08 **Status:** Accepted
 
 **Context:** The input field should complete text while typing.
 
-**Decision:** Suggestions come from `frontend/suggestions.json` (prefix match, Tab to accept, Esc to dismiss).
+**Decision:** Suggestions come from `application/static/suggestions.json` (language-specific prefix match, Tab to accept, Esc to dismiss).
 
 **Alternatives considered:**
 - *LLM-based completion:* more flexible, but sends half-typed input to a model on each keystroke, adds latency and cost, and raises data protection questions.
@@ -169,7 +169,7 @@ Author: J. Tietz
 
 **Consequences:** The phrase list must be maintained. It could be derived from the evaluation scenarios, and this must be disclosed to avoid biasing the evaluation.
 
-**Implementation status:** The frontend and `frontend/suggestions.json` are absent; the accepted completion feature is not implemented.
+**Implementation status:** The frontend loads German and English suggestion lists from `application/static/suggestions.json`. Matching prefixes are shown as ghost text; Tab accepts the completion and Escape dismisses it.
 
 ## D-009 Logging as JSON lines
 **Date:** 2026-10-08 **Status:** Accepted
@@ -187,7 +187,7 @@ Author: J. Tietz
 
 **Consequences:** The whole file is read on each request, which is fine at thesis scale. Logs may contain user questions and results, so they must never be committed.
 
-**Implementation status:** The application JSONL log and read-only UI API are absent. The gateway separately stores enforcement audit events in SQLite (see D-020); those records are not the conversation log described here.
+**Implementation status:** The application appends sanitized operational events to JSONL at `APP_LOG_PATH`; this is separate from the gateway's SQLite query audit. There is no read-only logs API or browser log viewer, so the frontend reports the Logs view as unavailable. The current application log is not a full conversation transcript.
 
 ## D-010 Deterministic safety layer, independent of the LLM
 **Date:** 2026-10-08 **Status:** Accepted
@@ -220,7 +220,7 @@ Author: J. Tietz
 
 **Consequences:** No real patient data, credentials or raw logs may be committed. Evaluation states are tagged.
 
-**Implementation status:** The current root contains `artifacts/`, `config/`, `database/`, `docs/`, `evaluation/`, `gateway/`, and `mcp_servers/`. `evaluation/` contains empty `development/` and `frozen_test/` directories. The planned `expose/`, `thesis/`, `prototype/`, and `prompts/` directories are absent, as is a root `.gitignore` (there is an `artifacts/.gitignore`). This entry records the original structure plan rather than the current layout.
+**Implementation status:** The repository contains `application/`, `artifacts/`, `config/`, `database/`, `docs/`, `evaluation/`, `gateway/`, and `mcp_servers/`, with a root `.gitignore`. The original `expose/`, `thesis/`, `prototype/`, and `prompts/` layout was not adopted. `evaluation/development/` and `evaluation/frozen_test/` exist but contain no evaluation material.
 
 ## D-012 Usability measured with SUS
 **Date:** 2026-10-08 **Status:** Accepted
@@ -278,7 +278,7 @@ Author: J. Tietz
 
 **Reason:** A clear clarification is safer and less confusing than silently guessing. This is deterministic keyword routing, not fuzzy spelling correction or an LLM response.
 
-**Consequences:** Mock mode supports a bounded phrase set documented in `docs/mock-mode.md`. Wording outside that set may require rephrasing even when its meaning is reasonable. Evaluation scenario E08 checks that unknown input does not fall through to a count.
+**Consequences:** This decision describes a proposed deterministic mock planner, not the current echo chat. If implemented, its supported phrase set and evaluation scenarios should be documented alongside it.
 
 **Implementation status:** No mock planner or chat application is present, so this accepted behavior is not currently implemented in the repository.
 
@@ -335,7 +335,7 @@ Do not publish MCP service ports on the host unless a documented local debugging
 
 **Consequences:** The application needs a separate MCP client connection for each server. Container DNS, service readiness, allowed-host configuration, and transport errors must be tested. Host validation is not authentication, and Docker network membership is not a complete security boundary. These endpoints must not be exposed to an untrusted network without additional controls.
 
-**Implementation status:** The three services and Streamable HTTP endpoints are configured in Compose, but no application client connects to them. The diagnostic smoke test does connect and invokes tools sequentially; it is not integrated with an application or test runner.
+**Implementation status:** The three services and Streamable HTTP endpoints are configured in Compose. `application/app/mcp_client.py` connects to them for discovery and invocation; `mcp_servers/smoke_test.py` also checks the protocol independently. The application status endpoint reports each configured MCP server independently.
 
 
 ## D-020 The query gateway remains the enforcement authority
@@ -362,7 +362,7 @@ The LLM and MCP servers do not receive database credentials. No MCP context serv
 
 **Consequences:** Changes to MCP descriptions do not change gateway permissions. Gateway policy changes require their own tests and review. The prototype must not describe MCP-based instructions as a security control.
 
-**Implementation status:** `gateway/app/policy.py`, `gateway/app/execution.py`, and `gateway/app/audit.py` implement the enforcement boundary for one count-query structure. Audit records are persisted in SQLite at `/app/audit/events.sqlite` by default; application conversation logging remains separate and unimplemented under D-009.
+**Implementation status:** `gateway/app/policy.py`, `gateway/app/execution.py`, and `gateway/app/audit.py` implement the enforcement boundary for one count-query structure. Audit records are persisted in SQLite at `/app/audit/events.sqlite` by default. The application separately writes sanitized operational events as JSONL; it does not store a complete conversation transcript or expose a logs API.
 
 
 ## D-021 Curated, versioned JSON metadata with no database access
@@ -408,4 +408,4 @@ The application will handle an unavailable context server explicitly and log the
 
 **Consequences:** Unit tests can run without PostgreSQL or a model. Integration tests require the MCP services and their Docker network. The application must not make a successful query depend on fabricated context when an essential context service is unavailable.
 
-**Implementation status:** `mcp_servers/tests/test_context.py` calls server tool functions directly. `mcp_servers/smoke_test.py` performs protocol initialization, discovery, and invocation against the three services sequentially, and fails if any server is unavailable. Independent degraded-mode behavior is not implemented because there is no application client.
+**Implementation status:** `mcp_servers/tests/test_context.py` calls server tool functions directly. `mcp_servers/smoke_test.py` performs protocol initialization, discovery, and invocation against running services. The application client and status endpoint handle servers independently; invoking a tool on an unavailable server returns a controlled error without fabricating context. The browser's status view does not make an unavailable server block other services.

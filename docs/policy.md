@@ -17,9 +17,12 @@ does not constitute a complete authentication or deployment security design.
 ## Execution and output
 
 The gateway uses a read-only transaction, a one-second lock timeout, and a
-five-second statement timeout. The included database role script intends to
-limit the role to reading the fixture table, but the Compose database name and
-password variable do not currently match that script.
+five-second statement timeout. The Compose database initialization uses the
+same `DB_NAME` for PostgreSQL and the gateway, and supplies `DB_PASSWORD` to
+the role script as `QUERY_RO_PASSWORD`. The role script grants the gateway
+role `CONNECT` on that database and `SELECT` on the fixture table. These
+initialization grants apply only when PostgreSQL initializes a new data
+volume; an existing volume is not migrated automatically.
 
 `MIN_CELL_COUNT` defaults to 5 and values below 5 are refused. Positive counts
 below the configured threshold are returned with status `suppressed` and a
