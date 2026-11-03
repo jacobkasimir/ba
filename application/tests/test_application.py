@@ -31,6 +31,8 @@ def client(tmp_path, monkeypatch):
         "APP_LOG_PATH",
         str(tmp_path / "events.jsonl"),
     )
+    monkeypatch.delenv("APP_GATEWAY_URL", raising=False)
+    monkeypatch.delenv("APP_GATEWAY_KEY", raising=False)
     monkeypatch.setenv("ENABLE_DEBUG_TOOLS", "true")
 
     with TestClient(app) as test_client:
@@ -65,6 +67,17 @@ def test_live_endpoint(client):
 
     assert response.status_code == 200
     assert response.json()["mode"] == "echo"
+
+
+def test_query_gateway_can_be_unconfigured(client):
+    response = client.post(
+        "/api/query",
+        json={"sql": "SELECT 1"},
+        headers={"X-Query-Action": "submit"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "gateway_unavailable"
 
 
 def test_ordinary_message_is_only_echoed(client, monkeypatch):

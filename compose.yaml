@@ -129,7 +129,7 @@ services:
     image: postgres:16
     profiles: ["local-db"]
     environment:
-      POSTGRES_DB: aktin
+      POSTGRES_DB: ${DB_NAME:-aktin}
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Set admin password}
       QUERY_RO_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
@@ -140,7 +140,7 @@ services:
       # Executed only when the database volume is initialized.
       - ./database/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d aktin"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10

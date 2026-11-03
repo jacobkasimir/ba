@@ -15,8 +15,10 @@ demonstration, not a general-purpose SQL gateway.
 - The schema initializer inserts 20 synthetic rows. This is a connectivity
   fixture, not the planned synthetic AKTIN/i2b2 evaluation dataset.
 - The database login defaults to role `user`. The bundled local database
-  initialization currently has mismatched database and password variable
-  names; see [Operations](operations.md#compose-database-initialization).
+  initialization uses `DB_NAME` for the initialized and gateway database, and
+  passes `DB_PASSWORD` to the role setup as `QUERY_RO_PASSWORD`. Initialization
+  runs only when PostgreSQL initializes an empty data volume; see
+  [Operations](operations.md#configuration).
 
 ## Validation and execution
 

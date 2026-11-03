@@ -84,17 +84,30 @@ async def lifespan(app: FastAPI):
         == "true"
     )
 
-    gateway = GatewayClient(
-        base_url=os.environ["APP_GATEWAY_URL"],
-        api_key=os.environ["APP_GATEWAY_KEY"],
-        timeout_seconds=float(os.getenv("APP_GATEWAY_TIMEOUT", "12")),
+    gateway_url = os.getenv("APP_GATEWAY_URL")
+    gateway_key = os.getenv("APP_GATEWAY_KEY")
+
+    if bool(gateway_url) != bool(gateway_key):
+        raise ValueError(
+            "APP_GATEWAY_URL and APP_GATEWAY_KEY must be configured together"
+        )
+
+    gateway = (
+        GatewayClient(
+            base_url=gateway_url,
+            api_key=gateway_key,
+            timeout_seconds=float(os.getenv("APP_GATEWAY_TIMEOUT", "12")),
+        )
+        if gateway_url and gateway_key
+        else None
     )
     app.state.gateway = gateway
 
     try:
         yield
     finally:
-        await gateway.aclose()
+        if gateway is not None:
+            await gateway.aclose()
 
 
 app = FastAPI(

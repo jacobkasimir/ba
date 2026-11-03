@@ -35,8 +35,20 @@ async def submit_query(
             },
         )
 
+    gateway = request.app.state.gateway
+    if gateway is None:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": {
+                    "code": "gateway_unavailable",
+                    "message": "The query gateway is not configured.",
+                }
+            },
+        )
+
     try:
-        result = await request.app.state.gateway.submit(proposal.sql)
+        result = await gateway.submit(proposal.sql)
     except GatewayError as exc:
         return JSONResponse(
             status_code=exc.status_code,

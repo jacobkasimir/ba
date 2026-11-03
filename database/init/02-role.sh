@@ -7,7 +7,8 @@ psql \
   -v ON_ERROR_STOP=1 \
   -U "$POSTGRES_USER" \
   -d "$POSTGRES_DB" \
-  -v role_password="$USER_PASSWORD" <<'SQL'
+  -v database_name="$POSTGRES_DB" \
+  -v role_password="$QUERY_RO_PASSWORD" <<'SQL'
 
 CREATE ROLE user
     LOGIN
@@ -18,7 +19,7 @@ CREATE ROLE user
     PASSWORD :'role_password';
 
 -- Explicitly allow only the required database and table access.
-GRANT CONNECT ON DATABASE aktin_synth TO user;
+GRANT CONNECT ON DATABASE :"database_name" TO user;
 GRANT USAGE ON SCHEMA public TO user;
 GRANT SELECT ON public.patient_dimension TO user;
 
