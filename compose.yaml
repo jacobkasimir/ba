@@ -36,6 +36,10 @@ services:
       # Development only. Disable before exposing the app more broadly.
       ENABLE_DEBUG_TOOLS: "true"
 
+      APP_GATEWAY_URL: ${APP_GATEWAY_URL:-http://host.docker.internal:8001}
+      APP_GATEWAY_KEY: ${GATEWAY_API_KEY:?Set GATEWAY_API_KEY}
+      APP_GATEWAY_TIMEOUT: 12
+
     ports:
       # Application API on your Mac.
       - "127.0.0.1:8080:8000"

@@ -39,6 +39,33 @@
       </p>
     </section>
 
+    <section aria-labelledby="query-title">
+  <h2 id="query-title">Query gateway</h2>
+
+  <p>
+    Submit a SQL proposal. The gateway decides whether it is permitted.
+  </p>
+
+  <form id="query-form">
+    <label for="query-sql">SQL proposal</label>
+
+    <textarea
+      id="query-sql"
+      name="sql"
+      rows="4"
+      maxlength="10000"
+      required
+    >SELECT COUNT(*) FROM public.patient_dimension</textarea>
+
+    <button id="query-submit" type="submit">
+      Submit query
+    </button>
+  </form>
+
+  <p id="query-status" role="status" aria-live="polite"></p>
+  <pre id="query-result"></pre>
+</section>
+
     <div class="layout">
       <main class="chat-panel">
         <div class="section-header">

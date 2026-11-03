@@ -431,3 +431,78 @@ refreshButton.addEventListener("click", refreshStatus);
 
 // Perform one initial check, rather than repeatedly polling all servers.
 refreshStatus();
+
+function initializeQueryPanel() {
+  const form = document.getElementById("query-form");
+  const sqlInput = document.getElementById("query-sql");
+  const submitButton = document.getElementById("query-submit");
+  const statusElement = document.getElementById("query-status");
+  const resultElement = document.getElementById("query-result");
+
+  if (!form) {
+    return;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const sql = sqlInput.value;
+
+    if (!sql.trim()) {
+      statusElement.textContent = "Enter a SQL proposal.";
+      return;
+    }
+
+    submitButton.disabled = true;
+    statusElement.textContent = "Submitting to the gateway…";
+    resultElement.textContent = "";
+
+    try {
+      const response = await fetch("/api/query", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Query-Action": "submit",
+        },
+        body: JSON.stringify({ sql }),
+      });
+
+      const body = await response.json();
+
+      if (!response.ok) {
+        const detail = body.detail;
+
+        statusElement.textContent =
+          detail?.code === "query_rejected"
+            ? "Query rejected"
+            : "Query failed";
+
+        resultElement.textContent =
+          detail?.message ?? "The request could not be completed.";
+
+        return;
+      }
+
+      // Verify the status field against the gateway's response schema.
+      statusElement.textContent =
+        body.status === "suppressed"
+          ? "Approved — result suppressed"
+          : "Approved — gateway result";
+
+      // Preserve the gateway's response, including null values.
+      resultElement.textContent = JSON.stringify(body, null, 2);
+    } catch {
+      statusElement.textContent = "Query failed";
+      resultElement.textContent =
+        "Could not obtain a valid response from the application.";
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeQueryPanel);
+} else {
+  initializeQueryPanel();
+}

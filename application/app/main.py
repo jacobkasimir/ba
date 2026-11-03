@@ -13,6 +13,9 @@ from .mcp_client import MCPManager, MCPUnavailable, UnknownTool
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from .gateway_client import GatewayClient
+from .query_api import router as query_router
+
 class ChatRequest(BaseModel):
     """A bounded development chat message."""
 
@@ -81,13 +84,25 @@ async def lifespan(app: FastAPI):
         == "true"
     )
 
-    yield
+    gateway = GatewayClient(
+        base_url=os.environ["APP_GATEWAY_URL"],
+        api_key=os.environ["APP_GATEWAY_KEY"],
+        timeout_seconds=float(os.getenv("APP_GATEWAY_TIMEOUT", "12")),
+    )
+    app.state.gateway = gateway
+
+    try:
+        yield
+    finally:
+        await gateway.aclose()
 
 
 app = FastAPI(
     title="AKTIN Prototype Application",
     lifespan=lifespan,
 )
+
+app.include_router(query_router)
 
 STATIC_DIRECTORY = Path(__file__).resolve().parent.parent / "static"
 
