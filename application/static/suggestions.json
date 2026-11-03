@@ -1,0 +1,14 @@
+{
+  "de": [
+    "Wie viele Zeilen enthält die synthetische Patiententabelle?",
+    "Welche Informationen beschreibt das verfügbare Schema?",
+    "Welche Einschränkungen gelten für Abfragevorschläge?",
+    "Welche Beispiele sind im Kontextkatalog enthalten?"
+  ],
+  "en": [
+    "How many rows are in the synthetic patient table?",
+    "What information does the available schema describe?",
+    "What restrictions apply to query proposals?",
+    "Which examples are available in the context catalog?"
+  ]
+}

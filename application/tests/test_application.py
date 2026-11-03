@@ -192,6 +192,15 @@ def test_frontend_index_is_served(client):
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert 'id="message-form"' in response.text
+    assert 'id="clear-button"' in response.text
+    assert 'id="query-form"' in response.text
+    assert 'id="language-select"' in response.text
+    assert 'id="theme-select"' in response.text
+    assert 'aria-labelledby="chat-title"' in response.text
+    assert 'localStorage.getItem("aktin-theme")' in response.text
+    assert 'localStorage.getItem("aktin-language")' in response.text
+    assert 'document.documentElement.lang = language' in response.text
+    assert 'window.matchMedia("(prefers-color-scheme: dark)")' in response.text
     assert "/static/app.js" in response.text
 
 
@@ -202,6 +211,18 @@ def test_frontend_javascript_is_served(client):
 
     assert response.status_code == 200
     assert 'const CHAT_URL = "/api/chat"' in response.text
+    assert 'const MCP_STATUS_URL = "/api/mcp/status"' in response.text
+    assert 'const HEALTH_URL = "/health/live"' in response.text
+    assert 'const QUERY_URL = "/api/query"' in response.text
+    assert '"X-Query-Action": "submit"' in response.text
+    assert '"aktin-language"' in response.text
+    assert '"aktin-theme"' in response.text
+    assert "prefers-color-scheme: dark" in response.text
+    assert "html.dataset.theme = resolveTheme(theme)" in response.text
+    assert "html.lang = language" in response.text
+    assert "response.generated_sql" in response.text
+    assert "JSON.stringify({ message })" in response.text
+    assert "JSON.stringify({ sql })" in response.text
 
 
 def test_frontend_stylesheet_is_served(client):
@@ -211,6 +232,9 @@ def test_frontend_stylesheet_is_served(client):
 
     assert response.status_code == 200
     assert "text/css" in response.headers["content-type"]
+    assert "prefers-reduced-motion" in response.text
+    assert ":root[data-theme=\"dark\"]" in response.text
+    assert "--surface:" in response.text
 
 
 def test_unknown_static_file_returns_404(client):

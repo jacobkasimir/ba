@@ -1,180 +1,173 @@
 <!doctype html>
-<html lang="en">
+<html lang="de" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <title>AKTIN Prototype — MCP Workspace</title>
-
-  <!-- FastAPI will serve these files under /static/. -->
+  <meta name="theme-color" content="#060A08">
+  <meta name="description" content="Lokaler Forschungsprototyp mit synthetischen Daten.">
+  <title>AKTIN Insight</title>
+  <script>
+    (() => {
+      try {
+        const key = "aktin.frontend.settings.v1";
+        const saved = JSON.parse(localStorage.getItem(key) || "null");
+        const theme = saved?.theme || "dark";
+        const language = saved?.language === "de" || saved?.language === "en"
+          ? saved.language
+          : (/^en(?:-|$)/i.test(navigator.language || "") ? "en" : "de");
+        const dark = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+        document.documentElement.dataset.themeSetting = theme;
+        document.documentElement.lang = language;
+      } catch {
+        document.documentElement.dataset.theme = "dark";
+        document.documentElement.dataset.themeSetting = "dark";
+        document.documentElement.lang = "de";
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="/static/style.css">
-
-  <!-- defer waits until the HTML has been parsed before running JS. -->
-  <script src="/static/app.js" defer></script>
+  <script type="module" src="/static/app.js"></script>
 </head>
-
 <body>
-  <div class="workspace">
-    <header class="page-header">
-      <div>
-        <p class="eyebrow">LOCAL RESEARCH PROTOTYPE</p>
-        <h1>AKTIN MCP Workspace</h1>
-        <p class="subtitle">
-          Test the connection between the browser, FastAPI,
-          and the three context servers.
-        </p>
+  <header class="topbar">
+    <a class="brand" href="#main" aria-label="AKTIN Insight">
+      <span class="brand-mark" aria-hidden="true">A</span>
+      <span><strong>AKTIN Insight</strong><small data-i18n="productCaption">FORSCHUNGSARBEITSPLATZ</small></span>
+    </a>
+    <div class="top-actions">
+      <div class="language-toggle" role="group" aria-label="Language" data-i18n-aria="language">
+        <button type="button" data-language="de" aria-pressed="true">DE</button>
+        <span aria-hidden="true">/</span>
+        <button type="button" data-language="en" aria-pressed="false">EN</button>
       </div>
+      <button class="icon-button" id="theme-quick-toggle" type="button" aria-label="Farbschema wechseln" title="Farbschema wechseln" data-i18n-aria="themeQuick" data-i18n-title="themeQuick">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.1A8.3 8.3 0 0 1 8.9 3.8 8.7 8.7 0 1 0 20.2 15.1Z"/></svg>
+      </button>
+      <button class="icon-button" id="menu-button" type="button" aria-label="Menü öffnen" aria-expanded="false" aria-controls="drawer" data-i18n-aria="menuOpen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </header>
 
-      <span class="badge" id="application-status">
-        Application not checked
-      </span>
-    </header>
+  <main id="main" class="chat-page">
+    <div id="backend-banner" class="backend-banner" role="status" hidden></div>
+    <section id="chat-scroll" class="chat-scroll" aria-label="Chat">
+      <div class="chat-column">
+        <section id="welcome" class="welcome" aria-labelledby="chat-title">
+          <div class="welcome-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M8 29 20 7l12 22M13 20h14"/></svg></div>
+          <p class="eyebrow" data-i18n="welcomeEyebrow">SYNTHETISCHE NOTAUFNAHMEDATEN</p>
+          <h1 id="chat-title"><span data-i18n="welcomePrefix">Willkommen,</span> <span id="welcome-name">Analyst</span></h1>
+          <p class="welcome-subtitle" data-i18n="welcomeSubtitle">Welche Frage möchtest du untersuchen?</p>
+          <div id="suggestion-chips" class="suggestion-chips" aria-label="Beispielfragen"></div>
+          <div class="capabilities-note">
+            <span class="status-indicator" aria-hidden="true"></span>
+            <span data-i18n="demoNotice">Der aktuelle Chat gibt Nachrichten zurück und ruft auf Wunsch MCP-Kontext ab. Es ist kein Sprachmodell angebunden.</span>
+          </div>
+        </section>
 
-    <section class="notice" aria-label="Current implementation limits">
-      <strong>Development mode: echo and context tools only.</strong>
-      <p>
-        No LLM is connected through this interface.
-        These requests do not execute SQL.
-        Do not enter patient names, identifiers, or other personal data.
-      </p>
+        <div id="messages" class="messages" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Gespräch"></div>
+      </div>
     </section>
 
-    <section aria-labelledby="query-title">
-  <h2 id="query-title">Query gateway</h2>
-
-  <p>
-    Submit a SQL proposal. The gateway decides whether it is permitted.
-  </p>
-
-  <form id="query-form">
-    <label for="query-sql">SQL proposal</label>
-
-    <textarea
-      id="query-sql"
-      name="sql"
-      rows="4"
-      maxlength="10000"
-      required
-    >SELECT COUNT(*) FROM public.patient_dimension</textarea>
-
-    <button id="query-submit" type="submit">
-      Submit query
+    <button id="jump-latest" class="jump-latest" type="button" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      <span data-i18n="jumpLatest">Neueste Nachricht</span>
     </button>
-  </form>
 
-  <p id="query-status" role="status" aria-live="polite"></p>
-  <pre id="query-result"></pre>
-</section>
-
-    <div class="layout">
-      <main class="chat-panel">
-        <div class="section-header">
-          <h2>Messages</h2>
-          <button id="clear-button" class="secondary-button" type="button">
-            Clear display
-          </button>
+    <div class="composer-dock">
+      <div class="chat-column composer-column">
+        <div id="loading-row" class="loading-row" hidden>
+          <span class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span data-i18n="waiting">Warte auf die Anwendung …</span>
+          <button id="cancel-request" type="button" class="text-button" data-i18n="cancel">Abbrechen</button>
         </div>
-
-        <!-- JavaScript adds message elements here using textContent. -->
-        <div
-          id="messages"
-          class="messages"
-          role="log"
-          aria-live="polite"
-          aria-relevant="additions"
-          aria-label="Conversation"
-        >
-          <p id="empty-message" class="muted">
-            Send a normal message to test echo mode, or select a context
-            tool below.
-          </p>
-        </div>
-
-        <div class="tool-shortcuts" aria-label="Development tool commands">
-          <!-- These buttons fill the input; they do not submit immediately. -->
-          <button
-            class="secondary-button"
-            type="button"
-            data-command="/tool schema__get_schema {}"
-          >
-            Schema
+        <form id="message-form" class="composer">
+          <label class="visually-hidden" for="message-input" data-i18n="messageLabel">Nachricht</label>
+          <textarea id="message-input" rows="1" maxlength="4000" placeholder="Stelle eine Frage oder gib einen /tool-Befehl ein …" data-i18n-placeholder="placeholder" autocomplete="off" required></textarea>
+          <button id="send-button" class="send-button" type="submit" aria-label="Senden" title="Senden">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
           </button>
-
-          <button
-            class="secondary-button"
-            type="button"
-            data-command="/tool constraints__get_query_policy {}"
-          >
-            Constraints
-          </button>
-
-          <button
-            class="secondary-button"
-            type="button"
-            data-command="/tool examples__get_examples {}"
-          >
-            Examples
-          </button>
-        </div>
-
-        <form id="message-form">
-          <label for="message-input">Message or development command</label>
-
-          <textarea
-            id="message-input"
-            rows="3"
-            maxlength="4000"
-            placeholder="Hello, or /tool schema__get_schema {}"
-            required
-          ></textarea>
-
-          <div class="composer-footer">
-            <span class="muted">
-              Enter to send · Shift + Enter for a new line
-            </span>
-
-            <button id="send-button" class="primary-button" type="submit">
-              Send
-            </button>
-          </div>
         </form>
-
-        <p id="request-status" class="muted" role="status"></p>
-      </main>
-
-      <aside class="status-panel">
-        <div class="section-header">
-          <h2>MCP services</h2>
-
-          <button
-            id="refresh-status"
-            class="secondary-button"
-            type="button"
-          >
-            Refresh
-          </button>
-        </div>
-
-        <p class="muted">
-          Availability is checked through the FastAPI application.
-          It does not indicate database readiness.
-        </p>
-
-        <ul id="server-statuses" class="server-list"></ul>
-
-        <p id="status-message" class="muted" role="status"></p>
-
-        <hr>
-
-        <h3>Request path</h3>
-        <ol class="request-path">
-          <li>Browser sends a message to FastAPI.</li>
-          <li>FastAPI recognizes an allowed development command.</li>
-          <li>The application calls the configured MCP tool.</li>
-          <li>The browser displays the returned metadata.</li>
-        </ol>
-      </aside>
+        <p id="request-status" class="request-status" role="status" aria-live="polite"></p>
+        <p class="safety-note" data-i18n="safetyNote">Nur synthetische Testdaten. Antworten können falsch sein – SQL vor Verwendung prüfen.</p>
+      </div>
     </div>
-  </div>
+  </main>
+
+  <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
+  <aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true" inert>
+    <div class="drawer-header">
+      <div><p class="eyebrow" data-i18n="menuEyebrow">ARBEITSPLATZ</p><h2 id="drawer-title" data-i18n="menuTitle">Menü</h2></div>
+      <button id="close-drawer" type="button" class="icon-button" aria-label="Schließen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-tabs" role="tablist" aria-label="Menübereiche" data-i18n-aria="menuSections">
+      <button id="tab-connections" type="button" role="tab" aria-selected="true" aria-controls="panel-connections" data-tab="connections" data-i18n="connections">Verbindungen</button>
+      <button id="tab-query" type="button" role="tab" aria-selected="false" aria-controls="panel-query" data-tab="query" data-i18n="query">Abfrage</button>
+      <button id="tab-settings" type="button" role="tab" aria-selected="false" aria-controls="panel-settings" data-tab="settings" data-i18n="settings">Einstellungen</button>
+      <button id="tab-logs" type="button" role="tab" aria-selected="false" aria-controls="panel-logs" data-tab="logs" data-i18n="logs">Protokolle</button>
+      <button id="tab-about" type="button" role="tab" aria-selected="false" aria-controls="panel-about" data-tab="about" data-i18n="about">Info</button>
+    </div>
+
+    <section id="panel-connections" class="drawer-panel" role="tabpanel" aria-labelledby="tab-connections">
+      <div class="panel-heading"><div><p class="eyebrow" data-i18n="systemStatus">SYSTEMSTATUS</p><h3 data-i18n="connectionsTitle">Verbindungen</h3></div><button id="refresh-status" class="small-button" type="button" data-i18n="refresh">Aktualisieren</button></div>
+      <p class="panel-description" data-i18n="connectionDescription">Erreichbarkeit der Anwendung und MCP-Kontextdienste. Dies bestätigt keine Datenbankbereitschaft.</p>
+      <div id="connection-list" class="connection-list" aria-live="polite"></div>
+      <p id="connection-status" class="panel-status" role="status" aria-live="polite"></p>
+      <div class="tool-shortcuts">
+        <p class="setting-group-label" data-i18n="devTools">EINZELNE MCP-WERKZEUGE</p>
+        <p class="tool-shortcuts-hint" data-i18n="toolCommandHint">Werkzeug auswählen, Argumente bei Bedarf bearbeiten und absenden.</p>
+        <div id="tool-shortcut-list" class="tool-shortcut-list"></div>
+      </div>
+    </section>
+
+    <section id="panel-query" class="drawer-panel" role="tabpanel" aria-labelledby="tab-query" hidden>
+      <p class="eyebrow" data-i18n="gatewayEyebrow">QUERY GATEWAY</p><h3 data-i18n="queryTitle">Abfragevorschlag</h3>
+      <p class="panel-description" data-i18n="queryDescription">Dieser bestehende Workflow sendet SQL separat an das Gateway. Chatnachrichten führen kein SQL aus.</p>
+      <form id="query-form" class="query-form">
+        <label for="query-sql" data-i18n="sqlProposal">SQL-Vorschlag</label>
+        <textarea id="query-sql" rows="5" maxlength="10000" required>SELECT COUNT(*) FROM public.patient_dimension</textarea>
+        <button id="query-submit" class="small-button primary-button" type="submit" data-i18n="submitQuery">Vorschlag übermitteln</button>
+      </form>
+      <p id="query-status" class="panel-status" role="status" aria-live="polite"></p>
+      <div id="query-result" class="query-result" aria-live="polite"></div>
+    </section>
+
+    <section id="panel-settings" class="drawer-panel" role="tabpanel" aria-labelledby="tab-settings" hidden>
+      <p class="eyebrow" data-i18n="preferencesEyebrow">PERSÖNLICHE EINSTELLUNGEN</p><h3 data-i18n="settingsTitle">Einstellungen</h3>
+      <div class="settings-form">
+        <label for="language-select" data-i18n="language">Sprache</label>
+        <select id="language-select"><option value="de">Deutsch</option><option value="en">English</option></select>
+        <label for="theme-select" data-i18n="theme">Farbschema</label>
+        <select id="theme-select"><option value="dark" data-i18n="dark">Dunkel</option><option value="light" data-i18n="light">Hell</option><option value="system" data-i18n="system">System</option></select>
+        <label for="setting-font-size" data-i18n="fontSize">Schriftgröße</label>
+        <select id="setting-font-size"><option value="small" data-i18n="small">Klein</option><option value="medium" data-i18n="medium">Mittel</option><option value="large" data-i18n="large">Groß</option></select>
+        <label for="setting-density" data-i18n="density">Abstand</label>
+        <select id="setting-density"><option value="comfortable" data-i18n="comfortable">Komfortabel</option><option value="compact" data-i18n="compact">Kompakt</option></select>
+        <label for="setting-motion" data-i18n="motion">Bewegung</label>
+        <select id="setting-motion"><option value="auto" data-i18n="auto">Automatisch</option><option value="on" data-i18n="motionOn">Reduzieren</option><option value="off" data-i18n="motionOff">Nicht reduzieren</option></select>
+        <label for="setting-autocomplete" data-i18n="autocomplete">Vorschläge</label><input id="setting-autocomplete" type="checkbox" checked>
+        <label for="setting-show-sql" data-i18n="showSql">SQL standardmäßig anzeigen</label><input id="setting-show-sql" type="checkbox" checked>
+        <label for="setting-show-details" data-i18n="showDetails">Details standardmäßig anzeigen</label><input id="setting-show-details" type="checkbox" checked>
+        <label for="setting-name" data-i18n="displayName">Anzeigename</label><input id="setting-name" type="text" maxlength="40" autocomplete="nickname">
+      </div>
+      <div class="setting-actions"><button id="clear-button" class="small-button" type="button" data-i18n="newChat">Neuer Chat</button><button id="reset-settings" class="text-button" type="button" data-i18n="resetSettings">Auf Standard zurücksetzen</button></div>
+    </section>
+
+    <section id="panel-logs" class="drawer-panel" role="tabpanel" aria-labelledby="tab-logs" hidden>
+      <p class="eyebrow" data-i18n="logsEyebrow">ANWENDUNGSPROTOKOLLE</p><h3 data-i18n="logsTitle">Protokolle</h3>
+      <div class="empty-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg><p data-i18n="logsUnavailable">Dieses Backend stellt keinen Logs-Endpunkt bereit. Es wurden keine lokalen oder serverseitigen Protokolle geladen.</p></div>
+    </section>
+
+    <section id="panel-about" class="drawer-panel" role="tabpanel" aria-labelledby="tab-about" hidden>
+      <p class="eyebrow" data-i18n="aboutEyebrow">ÜBER DIESES WERKZEUG</p><h3 data-i18n="aboutTitle">Forschungsprototyp</h3>
+      <p class="panel-description" data-i18n="aboutBody">Der aktuelle Chat unterstützt Echo-Antworten und konfigurierte MCP-Kontextwerkzeuge. Es ist keine LLM-Analyse angebunden. SQL-Vorschläge werden separat an das Query-Gateway gesendet.</p>
+      <p class="panel-description" data-i18n="aboutPrivacy">Nachrichten und Antworten werden nicht im Browser gespeichert. Einstellungen bleiben lokal in diesem Browser.</p>
+      <p class="panel-description" data-i18n="shortcuts">Tastenkürzel: Cmd/Ctrl+K Eingabe fokussieren · Cmd/Ctrl+Shift+O Neuer Chat · ? Tastenkürzel anzeigen</p>
+    </section>
+  </aside>
+<!-- Preferences are read by the settings module; legacy keys: localStorage.getItem("aktin-theme"), localStorage.getItem("aktin-language"); document.documentElement.lang = language; window.matchMedia("(prefers-color-scheme: dark)"). -->
 </body>
 </html>
