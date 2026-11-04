@@ -83,12 +83,18 @@
           <button id="cancel-request" type="button" class="text-button" data-i18n="cancel">Abbrechen</button>
         </div>
         <form id="message-form" class="composer">
+          <label class="visually-hidden" for="assistant-mode" data-i18n="modeLabel">Mode</label>
+          <select id="assistant-mode" class="mode-select" aria-label="Mode" data-i18n-aria="modeLabel">
+            <option value="chat" data-i18n="modeChat">Echo / developer tools</option>
+            <option value="assistant" data-i18n="modeAssistant">Assistant</option>
+          </select>
           <label class="visually-hidden" for="message-input" data-i18n="messageLabel">Nachricht</label>
           <textarea id="message-input" rows="1" maxlength="4000" placeholder="Stelle eine Frage oder gib einen /tool-Befehl ein …" data-i18n-placeholder="placeholder" autocomplete="off" required></textarea>
           <button id="send-button" class="send-button" type="submit" aria-label="Senden" title="Senden">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
           </button>
         </form>
+        <p class="scope-notice" data-i18n="assistant.scopeNotice">Assistant mode currently supports only the total row count of the synthetic patient table. Do not enter sensitive information. Submitting here may execute a gateway-approved read-only query.</p>
         <p id="request-status" class="request-status" role="status" aria-live="polite"></p>
         <p class="safety-note" data-i18n="safetyNote">Nur synthetische Testdaten. Antworten können falsch sein – SQL vor Verwendung prüfen.</p>
       </div>

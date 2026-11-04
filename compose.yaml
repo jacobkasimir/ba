@@ -39,6 +39,10 @@ services:
       APP_GATEWAY_URL: ${APP_GATEWAY_URL:-http://host.docker.internal:8001}
       APP_GATEWAY_KEY: ${GATEWAY_API_KEY:?Set GATEWAY_API_KEY}
       APP_GATEWAY_TIMEOUT: 12
+      LLM_ENABLED: "${LLM_ENABLED:-false}"
+      LLM_BASE_URL: "${LLM_BASE_URL:-}"
+      LLM_API_KEY: "${LLM_API_KEY:-}"
+      LLM_MODEL: "${LLM_MODEL:-}"
 
     ports:
       # Application API on your Mac.

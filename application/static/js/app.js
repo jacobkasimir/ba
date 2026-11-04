@@ -1,10 +1,15 @@
 import { t, applyTranslations } from "./i18n.js";
 import { loadSettings, saveSettings, resetSettings, applyVisualSettings } from "./settings.js";
-import { getHealth, getConnections, sendChat, submitQuery, ApiError } from "./api.js";
+import { getHealth, getConnections, sendChat, askAssistant, submitQuery, ApiError } from "./api.js";
 import { renderMessage } from "./render.js";
 
 const colorScheme = matchMedia("(prefers-color-scheme: dark)");
 const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
+const assistantErrorCodes = new Set([
+  "explicit_query_action_required", "assistant_not_configured", "assistant_busy",
+  "assistant_timeout", "invalid_gateway_response", "gateway_busy",
+  "gateway_timeout", "gateway_unavailable", "gateway_authentication_failed", "gateway_error",
+]);
 
 export function startApp() {
   let settings = loadSettings();
@@ -30,6 +35,7 @@ export function startApp() {
   const chatScroll = $("chat-scroll");
   const composer = $("message-form");
   const input = $("message-input");
+  const assistantMode = $("assistant-mode");
   const sendButton = $("send-button");
   const loadingRow = $("loading-row");
   const requestStatus = $("request-status");
@@ -202,9 +208,20 @@ export function startApp() {
     setLoading(true);
     requestStatusKey = "loading";
     requestStatus.textContent = t(settings.language, requestStatusKey);
+    const useAssistant = assistantMode.value === "assistant";
     try {
-      const response = await sendChat(text, controller.signal);
+      const response = useAssistant
+        ? await askAssistant(text, controller.signal)
+        : await sendChat(text, controller.signal);
       setBackendUnavailable(false);
+      if (useAssistant) {
+        appendMessage({ role: "assistant", kind: "assistant-reply", payload: response });
+        input.value = "";
+        autoGrow();
+        requestStatusKey = "";
+        requestStatus.textContent = "";
+        return;
+      }
       const kind = response.mode === "tool" ? "tool" : (response.mode === "echo" ? "echo" : "analysis");
       appendMessage({ role: "assistant", kind, payload: response });
       input.value = "";
@@ -218,8 +235,12 @@ export function startApp() {
       } else {
         const unreachable = error instanceof ApiError && error.unreachable;
         setBackendUnavailable(unreachable);
-        const textContent = unreachable ? t(settings.language, "backendDown") : (error.message || t(settings.language, "requestError"));
-        appendMessage({ role: "error", kind: "error", payload: { reply: textContent }, uiKey: unreachable ? "backendDown" : null, retryText: previous });
+        const knownCode = error instanceof ApiError && error.code && assistantErrorCodes.has(error.code);
+        const uiKey = useAssistant
+          ? (knownCode ? `assistant.error.${error.code}` : (unreachable ? "assistant.error.assistant_unavailable" : "assistant.error.assistant_request_failed"))
+          : (unreachable ? "backendDown" : null);
+        const textContent = t(settings.language, uiKey || "requestError");
+        appendMessage({ role: "error", kind: "error", payload: { reply: textContent }, uiKey, retryText: previous });
         requestStatusKey = unreachable ? "" : "requestError";
         requestStatus.textContent = unreachable ? "" : t(settings.language, requestStatusKey);
       }

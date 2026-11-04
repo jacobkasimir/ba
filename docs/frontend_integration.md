@@ -1,113 +1,55 @@
 # Frontend Integration
 
-## Purpose
+The plain HTML/CSS/JavaScript frontend is served by the FastAPI application
+from `application/static/`; it has no separate build step. It preserves the
+Echo/developer tool workflow and explicit SQL proposal form, and adds a
+separate Assistant mode when the backend feature is enabled. See
+[LLM integration](llm-integration.md) for the assistant API and scope.
 
-Provide a browser interface for the existing application echo mode,
-development MCP tool commands, and the separate query-gateway workflow.
+## Routes and workflows
 
-## Technology
+Static routes include `GET /`, `/static/style.css`, `/static/app.js`, and the
+JavaScript/CSS modules. The UI uses these application APIs:
 
-Plain HTML, CSS, and JavaScript.
-No frontend build step.
-Static assets are packaged in the FastAPI application image.
-The chat UI is served from `application/static/`; its CSS tokens and styles,
-JavaScript modules, and bilingual example prompts are local static assets.
+| UI action | Route | Result |
+|---|---|---|
+| Echo / developer tools | `POST /api/chat` | Ordinary text is echoed; explicit `/tool` commands retrieve configured MCP context when enabled. |
+| MCP status drawer | `GET /api/mcp/status` | Displays each server status independently. |
+| Explicit SQL proposal | `POST /api/query` | Sends user-entered SQL with `X-Query-Action: submit`; gateway response is shown. |
+| Assistant mode | `POST /api/assistant` | Sends the natural-language question with the action header; app gathers context, asks the model, and submits proposed SQL to the gateway. |
 
-## Chat interface preferences and suggestions
+The assistant mode is not a display-only model call: after the model proposes
+SQL, the application submits it to the gateway, which may execute its fixed
+read-only query. The composer includes a scope and synthetic-data notice.
+Assistant scope is only the total row count in
+`public.patient_dimension`. A gateway-suppressed count is displayed as
+suppressed, not as zero.
 
-The interface supports German and English. `application/static/suggestions.json`
-contains separate example-question lists for both languages; the selected
-language controls the empty-state chips and prefix completion. Tab accepts the
-visible completion, and Escape dismisses it. A matching partial suggestion is
-shown as subdued ghost text; once the typed text diverges from the suggestion,
-it is displayed normally. Choosing an example chip fills the chat input but
-does not submit it.
+The browser does not contact MCP, the model provider, PostgreSQL, or the
+gateway directly. Gateway and provider credentials stay in the application
+environment. `X-Query-Action` makes a client action explicit; it is not
+authentication.
 
-Language and visual preferences are stored in versioned browser local storage.
-Chat messages are not saved there. Theme options are dark, light, and system;
-system follows the browser's current color-scheme preference.
+## Presentation and local preferences
 
-## Routes
+The interface supports German and English, dark/light/system themes, display
+preferences, suggestion chips, prefix completion, MCP tool shortcuts, and
+safe text rendering. Preferences are stored in versioned browser local
+storage; chat history is not persisted there. Dynamic question, SQL, and
+response content is written as text, not HTML.
 
-GET /
-GET /static/style.css
-GET /static/app.js
+There is a known copy inconsistency: `demoNotice` and `aboutBody` translations
+in `application/static/js/i18n.js` still say no language model is connected,
+although the assistant mode now exists. This documentation-only change does
+not alter those frontend strings.
 
-Existing API routes used:
+## Limits
 
-GET /health/live
-GET /api/mcp/status
-POST /api/chat
-POST /api/query
+`GET /health/live` currently returns `{"status":"running","mode":"echo"}`
+with a hard-coded mode label; it does not report `LLM_ENABLED` or readiness of
+the model, MCP services, gateway, or database. Use `/api/mcp/status` for MCP
+availability, and gateway `/health/ready` for database readiness.
 
-## Request contract
-
-POST /api/chat
-
-{
-  "message": "Hello"
-}
-
-No session_id is sent by this implementation.
-
-## Response handling
-
-mode=echo:
-Display echoed text and state that no model or database query was used.
-
-mode=tool:
-Display context metadata and state that no SQL was executed.
-
-Individual MCP tools can be selected from the Connections drawer. Selecting a
-tool fills a `/tool <server>__<tool> {}` command into the chat input; the user
-can edit the JSON arguments before sending it. The drawer also retains the
-known schema, constraints, and examples tool shortcuts when MCP discovery is
-unavailable. Tool commands require `ENABLE_DEBUG_TOOLS=true` on the server.
-
-Unknown response formats:
-Display an error rather than assuming an analysis succeeded.
-
-## Connection architecture
-
-Browser -> FastAPI -> MCP servers (context requests)
-                   -> Query gateway (explicit SQL proposals only)
-
-The browser receives no PostgreSQL credentials or gateway API key.
-It does not connect directly to MCP servers or PostgreSQL. SQL proposals are
-sent to the application `/api/query` route, which delegates to the gateway.
-Ordinary chat messages are not SQL proposals and are only echoed unless they
-are explicit `/tool` commands.
-
-## Deployment
-
-UI and API share the same origin:
-
-http://127.0.0.1:8080/
-
-No CORS configuration is required for this arrangement.
-
-## Browser storage
-
-Messages are not stored in localStorage. Language, theme, display name, and
-other UI preferences are stored under `aktin.frontend.settings.v1`.
-Clearing the display does not delete backend logs.
-
-## Security and limitations
-
-Dynamic content is rendered with textContent.
-Development tool commands remain development-only.
-No LLM integration is added here.
-Chat does not execute database queries. The separate query proposal view uses
-the existing application-to-gateway workflow.
-No analysis result or safety guarantee is inferred from MCP availability.
-
-## Verification
-
-- [ ] HTML, CSS, and JavaScript routes return 200.
-- [ ] Application unit tests pass.
-- [ ] Echo mode works through the browser.
-- [ ] Each MCP tool works through the browser.
-- [ ] Invalid commands produce clear errors.
-- [ ] One failed server does not break working tools.
-- [ ] Restarted server becomes available again.
-- [ ] HTML-looking text is displayed literally.
+There is no browser authentication or authorization. The default Compose
+binding is loopback-only, but a network-exposed deployment needs additional
+access controls. The Logs panel is not backed by a log-reading endpoint.

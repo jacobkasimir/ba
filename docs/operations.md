@@ -1,106 +1,159 @@
 # Local Docker Operations
 
-The Compose stack contains the browser application, query gateway, three MCP
-context services, and an optional PostgreSQL service under the `local-db`
-profile. The gateway requires `DB_PASSWORD` and `GATEWAY_API_KEY`. The
-application receives the gateway URL from `APP_GATEWAY_URL` (default
-`http://host.docker.internal:8001`) and the same credential through
-`APP_GATEWAY_KEY`, which Compose maps from `GATEWAY_API_KEY`. The optional
-PostgreSQL profile also requires `POSTGRES_ADMIN_PASSWORD`.
+The Compose project contains the browser application, query gateway, three
+MCP context services, and an optional PostgreSQL 16 service in the
+`local-db` profile. Required local database and gateway credentials are
+`DB_PASSWORD` and `GATEWAY_API_KEY`; the local PostgreSQL profile additionally
+requires `POSTGRES_ADMIN_PASSWORD`. The optional assistant has its own
+provider configuration. See the table below and the detailed
+[LLM integration guide](llm-integration.md).
 
-Start by copying `.env.example` to `.env`, then replace each placeholder with
-local values. Do not commit `.env` or use real credentials in the example
-file. `.env.example` contains placeholder values, not working credentials.
-`GATEWAY_API_KEY` is a shared application-to-gateway credential; keep it
-server-side and do not put it in browser configuration.
+## Start and stop
 
-To build and start the application, gateway, and MCP services:
+Create `.env` from the safe template and fill local values. `.env.example`
+sets `LLM_ENABLED=false`; enabling the assistant requires setting it to
+`true` and filling the provider variables. Shell environment variables take
+precedence over `.env` during Compose interpolation, so an exported
+`LLM_ENABLED=false` overrides `.env`'s `true`.
+
+Validate and start the full local stack, including PostgreSQL:
 
 ```sh
-docker compose build
-docker compose up -d application gateway mcp-schema mcp-constraints mcp-examples
+docker compose config --quiet
+docker compose --profile local-db up -d --build
 ```
 
-The application UI and API are published on `127.0.0.1:8080`; the gateway is
-published on `127.0.0.1:8001`. MCP services listen on port 8000 inside the
-Compose network and have no published host ports. The application requires
-`APP_GATEWAY_URL` and `APP_GATEWAY_KEY` together when gateway access is
-configured. Without both, the app can start and serve non-query features, but
-query submission returns `503 gateway_unavailable`. Compose configures both
-for the normal stack and currently requires `GATEWAY_API_KEY` during Compose
-configuration even when starting only the application service. The gateway
-can start without a database connection, but `/health/ready` and query
-execution require a working database.
+To start the application, gateway, and MCP services without the local database
+container:
+
+```sh
+docker compose config --quiet
+docker compose up -d --build application gateway mcp-schema mcp-constraints mcp-examples
+```
+
+This second command still requires `GATEWAY_API_KEY` at Compose configuration
+time. The gateway can start while PostgreSQL is unavailable, but `/health/ready`
+and query execution require a working database. The application and gateway
+are published at `127.0.0.1:8080` and `127.0.0.1:8001`; MCP services have no
+published host ports. Compose does not define service readiness dependencies.
+After changing environment variables, recreate the application container:
+
+```sh
+docker compose up -d --force-recreate application
+```
+
+Stop services with `docker compose down`. This retains named volumes; it does
+not delete PostgreSQL data, gateway audit records, or application logs.
 
 ## Configuration
 
-Compose sets `MCP_CONFIG_PATH` to the read-only mounted
-`config/mcp_servers.json` and `APP_LOG_PATH` to the persistent application log
-volume. For direct application runs, these variables default to
-`/app/config/mcp_servers.json` and `/app/logs/app.log.jsonl`. Configure:
+Compose reads interpolation values from the invoking shell first, then its
+project `.env`. The application receives the following variables:
 
-| Variable | Required | Purpose |
+| Variable | Default / requirement | Purpose |
 |---|---|---|
-| `APP_GATEWAY_URL` | Together with `APP_GATEWAY_KEY` | Gateway base URL; Compose defaults to `http://host.docker.internal:8001`. |
-| `APP_GATEWAY_KEY` | Together with `APP_GATEWAY_URL` | Server-side credential sent as `X-Gateway-Key`; in Compose it comes from `GATEWAY_API_KEY`. |
-| `APP_GATEWAY_TIMEOUT` | No | Gateway request timeout in seconds; defaults to `12`. |
-| `MCP_CONFIG_PATH` | No | MCP server configuration path; defaults to `/app/config/mcp_servers.json`. |
-| `APP_LOG_PATH` | No | Application event log path; defaults to `/app/logs/app.log.jsonl`. |
-| `ENABLE_DEBUG_TOOLS` | No | Enables development MCP tool commands only when set to `true`; defaults to `false`. |
+| `LLM_ENABLED` | `false` | Enables the optional assistant only when its value lowercases to `true`. |
+| `LLM_BASE_URL` | Required when enabled | Absolute HTTP(S) provider API base URL; the client appends `chat/completions`. |
+| `LLM_API_KEY` | Required when enabled | Provider credential sent as a Bearer token; held by the application container. |
+| `LLM_MODEL` | Required when enabled | Provider deployment/model identifier accepted by that endpoint. |
+| `APP_GATEWAY_URL` | `http://host.docker.internal:8001` in Compose | Gateway base URL; must be paired with `APP_GATEWAY_KEY`. |
+| `APP_GATEWAY_KEY` | Mapped from `GATEWAY_API_KEY` | Shared server-to-server key sent as `X-Gateway-Key`. |
+| `APP_GATEWAY_TIMEOUT` | `12` seconds | Application-to-gateway timeout. |
+| `ENABLE_DEBUG_TOOLS` | `true` in Compose; otherwise `false` | Allows direct `/tool` commands on `/api/chat`. |
+| `MCP_CONFIG_PATH` | Compose mount `/app/config/mcp_servers.json` | MCP server addresses, allowed tool names, and timeouts. |
+| `APP_LOG_PATH` | Compose volume `/app/logs/app.log.jsonl` | Sanitized application operational JSONL events. |
 
-For the gateway and database variables, see `.env.example` and the Compose
-environment section. The optional `local-db` profile can be started with:
+The gateway and local database use these Compose variables:
 
-```sh
-docker compose --profile local-db up -d postgres
-```
+| Variable | Default / requirement | Purpose |
+|---|---|---|
+| `GATEWAY_API_KEY` | Required | Gateway key; Compose also maps it to the application. |
+| `DB_HOST`, `DB_PORT` | `postgres`, `5432` | Gateway database address. |
+| `DB_NAME`, `DB_USER` | `aktin`, `user` | Gateway database and role. The init script creates the fixed role `user`; changing `DB_USER` alone breaks the local profile. |
+| `DB_PASSWORD` | Required | Gateway role password and Compose `QUERY_RO_PASSWORD`. |
+| `DB_SSLMODE`, `DB_SSLROOTCERT` | `disable`, empty | PostgreSQL TLS mode and optional CA file. |
+| `POSTGRES_ADMIN_PASSWORD` | Required for `local-db` | PostgreSQL initialization administrator password. |
+| `MIN_CELL_COUNT` | `5`, minimum `5` | Gateway suppression threshold. This demo setting is not a settled governance value. |
+| `AUDIT_PATH` | `/app/audit/events.sqlite` | Gateway SQLite audit database path. |
 
-Compose passes `DB_NAME` to PostgreSQL as `POSTGRES_DB` and to the gateway as
-`DB_NAME`. The role initialization connects to `POSTGRES_DB`, grants access to
-that same database, and reads the role password from `QUERY_RO_PASSWORD`, which
-Compose sources from `DB_PASSWORD`. Initialization scripts run only when
-PostgreSQL initializes an empty data volume. If changing the database setup on
-an existing volume, recreate or explicitly migrate that volume before
-expecting the initialization scripts to run again.
+The gateway requires `APP_GATEWAY_URL` and `APP_GATEWAY_KEY` together. If
+`LLM_ENABLED=true` but gateway configuration is missing, startup fails. If the
+assistant is disabled, `/api/assistant` returns `503 assistant_not_configured`;
+the Echo/debug chat remains available. Invalid MCP configuration fails
+application startup. MCP network availability is checked lazily during status
+checks or requests. An enabled assistant also fails startup if required
+provider variables are missing or invalid.
 
-## Tests and MCP smoke check
+## Test, protocol, and provider commands
 
-Build and run each test suite with its Dockerfile test target:
+Build and run the Dockerfile test targets:
 
 ```sh
 docker build --target test -t ba-application-tests ./application
 docker run --rm ba-application-tests
+
 docker build --target test -t ba-gateway-tests ./gateway
 docker run --rm -e GATEWAY_API_KEY=test-key ba-gateway-tests
+
 docker build --target test -t ba-mcp-tests ./mcp_servers
 docker run --rm ba-mcp-tests
 ```
 
-Application tests use temporary configuration and log files. Query integration
-tests replace the gateway transport with an in-memory HTTP mock; they do not
-need a running gateway or database. Gateway tests cover parsing/policy, API
-response behavior, mocked database execution, suppression, and audit failure
-handling. They do not verify a live PostgreSQL connection or the Compose role
-setup. MCP unit tests directly call the Python tool functions; they do not use
-the MCP protocol or containers.
+These are mocked/unit-level suites, with distinct boundaries:
 
-`mcp_servers/smoke_test.py` performs MCP initialization, tool discovery, and
-tool invocation against all three running services. With the MCP services
-already running, invoke it inside the Compose network:
+- Application tests cover Echo/debug API behavior, assistant service
+  orchestration with fake services, the LLM HTTP contract with
+  `httpx.MockTransport`, and application-to-gateway HTTP behavior with a mock
+  transport. They do not call a live model, MCP network, gateway, or database.
+- Gateway tests mock database execution and audit failures. They test SQL
+  parsing/policy, response and suppression behavior, not a live PostgreSQL
+  connection or Compose database initialization.
+- MCP unit tests call server functions in-process; they do not use the MCP
+  wire protocol or running containers.
+- There is no separate one-request provider smoke-test target. The four-case
+  real-provider evaluator below is the repository's provider-facing check; it
+  tests a small intent set rather than only endpoint connectivity.
+
+The separate protocol smoke test performs MCP initialization, discovery, and
+tool invocation against all three running services. Start the Compose stack,
+then run:
 
 ```sh
 docker compose run --rm --no-deps --entrypoint python mcp-examples smoke_test.py
 ```
 
-This smoke check has no test-runner integration. It processes servers
-sequentially and raises if any is unavailable.
-
-To stop services:
+The real-provider intent evaluation is not part of any Dockerfile test target.
+It sends four requests to the configured provider and never submits proposals
+to the gateway. It can incur provider charges. To run it in the application
+image without mounting `.env` into the container:
 
 ```sh
-docker compose down
+docker compose run --rm \
+  -v "$PWD/application:/workspace/application:ro" \
+  -v "$PWD/evaluation:/workspace/evaluation:ro" \
+  -v "$PWD/mcp_servers/schema/context:/workspace/mcp_servers/schema/context:ro" \
+  -v "$PWD/mcp_servers/constraints/context:/workspace/mcp_servers/constraints/context:ro" \
+  -v "$PWD/mcp_servers/examples/context:/workspace/mcp_servers/examples/context:ro" \
+  -w /workspace application \
+  python3 evaluation/development/run_assistant_intent_eval.py
 ```
 
-This does not remove named volumes. PostgreSQL data persists in `pgdata`, and
-gateway audit and application logs persist in `gateway_audit` and
-`application_logs`.
+Compose supplies the application service's configured environment. The
+provider-specific requirements and runner limits are documented in
+[LLM integration](llm-integration.md). There is no automated full end-to-end
+test that connects a live provider, MCP services, gateway, and PostgreSQL.
+
+## Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| `/api/assistant` returns `assistant_not_configured` | Check `LLM_ENABLED` inside the running application container. Recreate it after changing Compose variables. An exported shell variable overrides `.env`. |
+| `/api/assistant` returns `context_unavailable` | Call `/api/mcp/status`; ensure all three MCP services are running and the configured tool names match `config/mcp_servers.json`. Context errors are deliberately collapsed to this code. |
+| `llm_provider_error` | The provider returned non-200; the browser sees only a safe error code. The development evaluator can optionally print bounded provider error fields with `LLM_EVAL_PROVIDER_DIAGNOSTICS=1`. Confirm deployment ID, auth, and support for strict JSON Schema plus `max_completion_tokens`. |
+| `gateway_unavailable` / `gateway_authentication_failed` | Check the application gateway URL/key pair, gateway container, and shared key mapping. |
+| Gateway returns `query_rejected` | The proposal did not match the exact supported SQL shape or gateway input constraints. No SQL repair/retry is performed. |
+| Gateway readiness/query fails against local PostgreSQL | Check database status and logs. On an existing `pgdata` volume, init scripts do not rerun. With a custom `DB_USER`, the fixed `user` role from `database/init/02-role.sh` must also be reconciled. |
+
+For a full teardown that also deletes data, inspect the named volumes before
+using `docker compose down -v`; that command permanently removes persisted
+database, audit, and log data.

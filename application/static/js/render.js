@@ -139,6 +139,10 @@ export function renderMessage(message, { language, settings, onAction }) {
     return row;
   }
 
+  if (message.kind === "assistant-reply") {
+    return renderAssistantReply(message.payload, language);
+  }
+
   const payload = normalizePayload(message.payload || {});
   const isFailure = message.role === "error" || payload.ok === false;
   const card = element("div", isFailure ? "error-card" : "assistant-card");
@@ -177,6 +181,41 @@ export function renderMessage(message, { language, settings, onAction }) {
   if (Array.isArray(payload.columns) && Array.isArray(payload.rows)) actions.append(actionButton(t(language, "downloadCsv"), () => onAction("csv", { columns: payload.columns, rows: payload.rows })));
   if (isFailure && message.retryText) actions.append(actionButton(t(language, "retry"), () => onAction("retry", { text: message.retryText }), "small-action primary-button"));
   if (actions.childElementCount) card.append(actions);
+  body.append(card);
+  row.append(avatar, body);
+  return row;
+}
+
+function renderAssistantReply(reply, language) {
+  const row = element("article", "message-row assistant");
+  const avatar = element("div", "message-avatar", "A");
+  avatar.setAttribute("aria-hidden", "true");
+  const body = element("div", "message-body");
+  const card = element("div", "assistant-card");
+  card.append(element("div", "assistant-header", t(language, "assistant")));
+
+  const statusKey = `assistant.status.${reply?.status}`;
+  const knownStatus = ["completed", "suppressed", "unsupported", "rejected"].includes(reply?.status);
+  const status = element("p", "message-content", t(language, knownStatus ? statusKey : "assistant.error.invalidResult"));
+  card.append(status);
+
+  if (reply?.proposed_sql !== null && typeof reply?.proposed_sql === "string") {
+    const details = element("details", "sql-details");
+    details.append(element("summary", "", t(language, "sql")));
+    details.append(element("pre", "sql-code", reply.proposed_sql));
+    card.append(details);
+  }
+
+  if (reply?.status === "completed") {
+    if (!Number.isSafeInteger(reply.count) || reply.count < 0) {
+      status.textContent = t(language, "assistant.error.invalidResult");
+    } else {
+      card.append(element("p", "message-content assistant-count", String(reply.count)));
+    }
+  } else if (reply?.status === "suppressed") {
+    card.append(element("p", "message-content", t(language, "assistant.result.suppressed")));
+  }
+
   body.append(card);
   row.append(avatar, body);
   return row;

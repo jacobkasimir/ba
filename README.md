@@ -1,57 +1,58 @@
 # AKTIN Insight Research Prototype
 
-This repository contains a local Docker Compose prototype with a FastAPI web
-application, three MCP context services, a separate query gateway, and an
-optional PostgreSQL connectivity fixture. The chat is currently echo-only for
-ordinary messages; no LLM integration or natural-language SQL generation is
-implemented. See [Current Architecture](docs/architecture.md) and
-[Frontend Integration](docs/frontend_integration.md).
+This repository contains a local Docker Compose prototype with a browser UI,
+FastAPI application, three read-only MCP context services, a query gateway,
+and an optional PostgreSQL connectivity fixture. The UI keeps its Echo and
+developer-tool workflow, supports explicit SQL submission, and has a separate
+optional natural-language assistant. The assistant supports only the total
+row count of the synthetic `public.patient_dimension` fixture; it is not
+general clinical text-to-SQL.
+
+See [Architecture](docs/architecture.md) for the request flows and
+[LLM integration](docs/llm-integration.md) for the assistant contract,
+configuration, provider requirements, and trust boundaries.
 
 ## Start locally
 
-Create a local environment file from the placeholder template and replace the
-required placeholders with local-only values:
+Copy the example file, then set local credentials in `.env`. Keep real values
+out of version control. `LLM_ENABLED` defaults to `false`; enable it and set
+the provider API base URL, API key, and deployment name only if you want the
+assistant workflow.
 
 ```sh
 cp .env.example .env
+docker compose config --quiet
+docker compose --profile local-db up -d --build
 ```
 
-The normal stack requires `DB_PASSWORD` and `GATEWAY_API_KEY`; the optional
-PostgreSQL profile also requires `POSTGRES_ADMIN_PASSWORD`. Do not commit `.env`
-or put credentials in `.env.example`.
+The local UI and application API are available at <http://127.0.0.1:8080/>;
+the gateway is published at `127.0.0.1:8001`. MCP endpoints are internal to
+the Compose network. The local PostgreSQL database has 20 synthetic rows and
+is a connectivity fixture, not the planned AKTIN/i2b2 evaluation dataset.
+Initialization scripts run only when PostgreSQL initializes an empty data
+volume. See [Operations](docs/operations.md) before reusing that volume.
 
-Build and start the application, gateway, and MCP services:
+## Tests and evaluation
 
-```sh
-docker compose build
-docker compose up -d application gateway mcp-schema mcp-constraints mcp-examples
-```
+Each service has a Dockerfile `test` target. The application unit and
+integration tests use fakes or in-memory HTTP transports; they do not exercise
+a live provider, gateway, MCP network, or PostgreSQL. The MCP protocol smoke
+test is separate. A four-case real-provider development evaluator is in
+`evaluation/development/`; it calls the configured provider and can incur
+charges. No live provider call is made by the test targets.
 
-Open <http://127.0.0.1:8080/>. The application UI/API and gateway are bound to
-loopback ports 8080 and 8001. MCP services have no published host ports.
-
-To include the optional local PostgreSQL fixture, use:
-
-```sh
-docker compose --profile local-db up -d postgres
-```
-
-The fixture contains 20 synthetic rows and is not the planned evaluation
-dataset. Initialization scripts run only for a new PostgreSQL data volume.
-See [Operations](docs/operations.md) before changing or reusing that volume.
-
-Stop the services with:
-
-```sh
-docker compose down
-```
+Exact commands and test boundaries are in [Operations](docs/operations.md).
+The development evaluation set and its limits are described in
+[Evaluation status](docs/evaluation-plan.md).
 
 ## Documentation
 
 - [Architecture](docs/architecture.md)
 - [Application and MCP integration](docs/app_mcp_integration.md)
 - [Frontend behavior](docs/frontend_integration.md)
-- [Operations and tests](docs/operations.md)
+- [Operations, configuration, and tests](docs/operations.md)
+- [LLM integration](docs/llm-integration.md)
 - [Threat model](docs/threat-model.md)
 - [Gateway policy](docs/policy.md)
+- [Gateway implementation](docs/gateway-v1.md)
 - [Evaluation status](docs/evaluation-plan.md)

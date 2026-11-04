@@ -58,9 +58,10 @@ currently supports only one aggregate operation.
   result release if final logging fails.
 - Authentication and request-body validation failures are not written to the
   audit database.
-- This differs from accepted Decision D-009, which specifies JSONL application
-  logging and a read-only UI API. Neither that application log nor the UI is
-  implemented in this repository.
+- The application separately writes sanitized JSONL operational events and
+  serves a browser UI. It does not provide the read-only log API/UI reader
+  described in accepted Decision D-009. Gateway audit and application logs are
+  separate stores.
 
 ## Limitations
 

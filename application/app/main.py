@@ -16,6 +16,15 @@ from fastapi.staticfiles import StaticFiles
 from .gateway_client import GatewayClient
 from .query_api import router as query_router
 
+from .assistant_api import router as assistant_router
+from .assistant_bindings import (
+    CONTEXT_TOOLS,
+    call_context_tool,
+)
+from .assistant_context import ContextLoader
+from .assistant_service import AssistantService
+from .llm_client import LLMClient
+
 class ChatRequest(BaseModel):
     """A bounded development chat message."""
 
@@ -103,9 +112,71 @@ async def lifespan(app: FastAPI):
     )
     app.state.gateway = gateway
 
+    llm = None
+    app.state.assistant = None
+
     try:
+        enabled = (
+            os.getenv("LLM_ENABLED", "false").lower() == "true"
+        )
+
+        if enabled:
+            if app.state.gateway is None:
+                raise ValueError(
+                    "LLM integration requires gateway configuration"
+                )
+
+            names = (
+                "LLM_BASE_URL",
+                "LLM_API_KEY",
+                "LLM_MODEL",
+            )
+            settings = {
+                name: os.getenv(name, "")
+                for name in names
+            }
+
+            missing = [
+                name
+                for name, value in settings.items()
+                if not value
+            ]
+
+            if missing:
+                raise ValueError(
+                    "Missing LLM settings: " + ", ".join(missing)
+                )
+
+            async def call_mcp(server, tool, arguments):
+                return await call_context_tool(
+                    app.state.mcp,
+                    server,
+                    tool,
+                    arguments,
+                )
+
+            context_loader = ContextLoader(
+                call_tool=call_mcp,
+                tools=CONTEXT_TOOLS,
+            )
+
+            llm = LLMClient(
+                base_url=settings["LLM_BASE_URL"],
+                api_key=settings["LLM_API_KEY"],
+                model=settings["LLM_MODEL"],
+            )
+
+            app.state.assistant = AssistantService(
+                context_loader=context_loader,
+                llm=llm,
+                gateway=app.state.gateway,
+            )
+
         yield
     finally:
+        if llm is not None:
+            await llm.aclose()
+
         if gateway is not None:
             await gateway.aclose()
 
@@ -116,6 +187,7 @@ app = FastAPI(
 )
 
 app.include_router(query_router)
+app.include_router(assistant_router)
 
 STATIC_DIRECTORY = Path(__file__).resolve().parent.parent / "static"
 

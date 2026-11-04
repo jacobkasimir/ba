@@ -1,63 +1,86 @@
 # Current Architecture
 
-This repository contains a local Docker Compose prototype with a browser UI,
-FastAPI application, deterministic query gateway, and three MCP context
-services. There is no LLM integration.
+The prototype has four distinct application workflows. Echo and `/tool`
+commands remain available regardless of whether the optional assistant is
+enabled. The browser talks only to the application; the application holds
+service credentials.
 
-```text
- Browser UI
-    | chat, context, and query requests
-    v
- FastAPI application --------------------------+
-    | MCP context requests                     | SQL proposal + X-Gateway-Key
-    v                                           v
- MCP context services                    FastAPI query gateway ---- PostgreSQL
- - mcp-schema                            (policy, execution, audit)
- - mcp-constraints
- - mcp-examples
-    returns static context
+```mermaid
+flowchart LR
+  UI[Browser UI]
+  APP[FastAPI application]
+  MCP[Three MCP context services]
+  LLM[Configured Chat Completions deployment]
+  GW[Query gateway]
+  DB[(PostgreSQL)]
+
+  UI -->|POST /api/chat: echo or explicit /tool| APP
+  UI -->|POST /api/query: explicit SQL + action header| APP
+  APP -->|POST /query + X-Gateway-Key| GW
+  UI -->|POST /api/assistant: assistant mode only| APP
+  APP -->|schema, policy, examples; arguments {}| MCP
+  MCP -->|curated context| APP
+  APP -->|question + context; JSON Schema decision| LLM
+  LLM -->|proposed SQL or unsupported| APP
+  APP -->|proposal; no natural-language question| GW
+  GW -->|fixed gateway-owned aggregate SQL| DB
+  GW -->|validated response and suppression status| APP
+  APP -->|assistant outcome| UI
 ```
 
-The application serves the browser UI and API. Its MCP client calls the
-configured context services for schema, query policy, and examples. Its query
-route forwards a proposed SQL string to the gateway using the server-side
-`APP_GATEWAY_KEY`. The browser does not receive this credential. The gateway
-independently validates the proposal, executes gateway-owned SQL, applies
-output suppression, and records audit events. Context returned by MCP services
-is informational and does not authorize a query. See [Gateway V1](gateway-v1.md)
-for current gateway behavior and limits.
+`POST /api/chat` echoes ordinary messages. If `ENABLE_DEBUG_TOOLS=true`, a
+message in `/tool <server>__<tool> {json}` form invokes one configured MCP
+tool. These direct tool results are context only; they do not submit SQL.
 
-The gateway is attached to both the Compose service network and the internal
-database network. The application and MCP services are attached only to the
-service network; PostgreSQL is attached only to the database network. The
-application can start without gateway configuration, but query submission
-returns `503 gateway_unavailable` until the gateway URL and key are configured.
-Docker network membership and MCP Host-header validation are not authentication
-or complete security boundaries.
+`POST /api/query` is the explicit SQL workflow. It accepts `{"sql":"..."}`
+and requires `X-Query-Action: submit`. The application sends the SQL to the
+gateway's `POST /query` endpoint using `X-Gateway-Key`.
 
-The MCP services expose Streamable HTTP at their internal Compose addresses:
+`POST /api/assistant` is a separate optional workflow. The application loads
+all three fixed MCP documents concurrently, sends the question and context to
+the configured model, then submits a proposed SQL string to the gateway. The
+model does not execute SQL. The application does not execute SQL either; the
+gateway validates the proposal and runs its own fixed SQL if it approves it.
+This assistant route therefore may cause a gateway-approved read-only query
+without a separate SQL form submission. The browser must present that action
+clearly.
 
-| Compose service | MCP tool | Internal endpoint |
-|---|---|---|
-| `mcp-schema` | `get_schema` | `http://mcp-schema:8000/mcp` |
-| `mcp-constraints` | `get_query_policy` | `http://mcp-constraints:8000/mcp` |
-| `mcp-examples` | `get_examples` | `http://mcp-examples:8000/mcp` |
+The supported natural-language scope is only the total number of rows in
+`public.patient_dimension`, using the proposal
+`SELECT COUNT(*) FROM public.patient_dimension`. This is a synthetic
+connectivity fixture, not clinical text-to-SQL. The gateway accepts only the
+exact parsed structure of that query and executes its own count statement.
+Its SQL policy cannot establish that the proposed query correctly answers
+the user's natural-language intent.
 
-Compose does not publish MCP ports on the host. Each service reads its own
-versioned JSON context document, has no database credentials, and does not
-connect to PostgreSQL.
+MCP context is informational, not authorization. The prompt cannot enforce
+query policy. The gateway alone enforces SQL structure, read-only execution,
+audit, and output suppression. The proposal returned as `proposed_sql` must
+not be described as executed SQL; the gateway response has a separate
+`executed_sql` field. Suppressed `null` counts remain unknown/suppressed and
+must never be rendered as zero. See [LLM integration](llm-integration.md) and
+[Gateway policy](policy.md) for contracts and limitations.
 
-The Dockerfiles use Python 3.12. Gateway runtime dependencies are ranges in
-`gateway/requirements.txt`; they are not an exact lock. MCP runtime
-dependencies are ranges in `mcp_servers/requirements.txt`, which constrains
-`mcp` to `>=1.20,<2`. The exact MCP SDK version in
-`docs/mcp-runtime-requirements.txt` is 1.30.0, but that snapshot is not
-installed by the MCP Dockerfile, which installs the range-based requirements.
+## Compose network and database
 
-The optional Compose `local-db` profile defines a PostgreSQL 16 service and a
-small fixture. Compose uses `DB_NAME` for both PostgreSQL initialization and
-the gateway connection; the role initialization grants access to that
-database and takes its password from `DB_PASSWORD` via `QUERY_RO_PASSWORD`.
-Initialization scripts run only when PostgreSQL initializes an empty data
-volume. The fixture is not the planned synthetic AKTIN/i2b2 evaluation
-dataset.
+The application and MCP services are on `service_network`. The gateway joins
+`service_network` and the internal `database_network`; PostgreSQL joins only
+`database_network`. Compose publishes application and gateway ports on
+loopback and publishes no MCP ports. The default application gateway URL is
+`http://host.docker.internal:8001`, overridable with `APP_GATEWAY_URL`.
+Container networking is not authentication.
+
+The optional `local-db` profile uses PostgreSQL 16. With default settings,
+`DB_NAME` is consistently passed to PostgreSQL and the gateway, and the init
+scripts create the gateway's default `user` role and grant it access to
+`public.patient_dimension`. There is a configuration caveat: `DB_USER` is
+overridable for the gateway, while `database/init/02-role.sh` always creates
+the literal role `user`. Changing `DB_USER` without changing the init script
+therefore breaks the local database login. Initializers run only for a new
+PostgreSQL data volume. The 20-row fixture is not the planned AKTIN/i2b2
+evaluation dataset.
+
+The Python Docker images use Python 3.12. Runtime dependency files use version
+ranges rather than a complete lock file. The MCP runtime requirement is
+`mcp>=1.20,<2`; the separate `docs/mcp-runtime-requirements.txt` snapshot is
+not what the MCP Dockerfile installs.

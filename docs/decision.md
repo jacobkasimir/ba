@@ -30,6 +30,18 @@ Author: J. Tietz
 | D-021 | 2026-11-02 | MCP context is versioned, reviewed JSON metadata; MCP servers have no database credentials and do not execute SQL | Accepted |
 | D-022 | 2026-11-02 | Test each MCP server independently, then test MCP discovery and invocation across containers; one server being unavailable must not prevent the others from being used | Accepted |
 
+## Status clarification (2026-11-04; historical entries preserved)
+
+Implementation-status notes in the earlier decisions describe the repository
+at the time they were written; they are not retroactive records of later
+features. The current application includes the Echo/debug and explicit query
+workflows plus an optional `LLM_ENABLED` assistant. A versioned four-case
+development intent set now exists under `evaluation/development/`, so earlier
+notes that those folders were empty are historical. These additions do not
+settle D-015's project-level provider/model approval, D-014's evaluation data
+source, or D-013's suppression threshold. Current behavior is documented in
+`docs/architecture.md` and `docs/llm-integration.md`.
+
 ---
 
 ## D-001 Python 3.12 for the prototype
@@ -85,7 +97,9 @@ Author: J. Tietz
 
 **Consequences:** The frontend is a separate static application (see D-004).
 
-**Implementation status:** `application/app/main.py` is the FastAPI browser application and echo/MCP chat backend. `application/app/mcp_client.py` provides the application-side MCP client, and `application/app/query_api.py` delegates explicit SQL proposals to the separate query gateway. No LLM-backed chat is implemented.
+**Implementation status (as recorded at this decision):** `application/app/main.py` is the FastAPI browser application and echo/MCP chat backend. `application/app/mcp_client.py` provides the application-side MCP client, and `application/app/query_api.py` delegates explicit SQL proposals to the separate query gateway. No LLM-backed chat was implemented at that point.
+
+**Status clarification (2026-11-04):** The application now has an optional, separately configured LLM assistant route. The original status above is retained as historical context.
 
 ## D-004 Frontend in plain HTML, CSS and JavaScript
 **Date:** 2026-10-08 **Status:** Accepted
@@ -152,7 +166,9 @@ Author: J. Tietz
 
 **Consequences:** The `/tool` command bypasses the LLM and must be removed or restricted before the usability study.
 
-**Implementation status:** Ordinary messages use echo mode. When `ENABLE_DEBUG_TOOLS=true`, `/tool <server>__<tool> {json}` invokes an allowed MCP context tool. The browser exposes individual tool shortcuts. No LLM is connected.
+**Implementation status (as recorded at this decision):** Ordinary messages use echo mode. When `ENABLE_DEBUG_TOOLS=true`, `/tool <server>__<tool> {json}` invokes an allowed MCP context tool. The browser exposes individual tool shortcuts. No LLM was connected at that point.
+
+**Status clarification (2026-11-04):** Echo/debug mode remains available, and the browser now has an optional Assistant mode backed by `/api/assistant`. See `docs/llm-integration.md`.
 
 ## D-008 Text completion from a fixed phrase list
 **Date:** 2026-10-08 **Status:** Accepted
@@ -220,7 +236,9 @@ Author: J. Tietz
 
 **Consequences:** No real patient data, credentials or raw logs may be committed. Evaluation states are tagged.
 
-**Implementation status:** The repository contains `application/`, `artifacts/`, `config/`, `database/`, `docs/`, `evaluation/`, `gateway/`, and `mcp_servers/`, with a root `.gitignore`. The original `expose/`, `thesis/`, `prototype/`, and `prompts/` layout was not adopted. `evaluation/development/` and `evaluation/frozen_test/` exist but contain no evaluation material.
+**Implementation status (as recorded at this decision):** The repository contains `application/`, `artifacts/`, `config/`, `database/`, `docs/`, `evaluation/`, `gateway/`, and `mcp_servers/`, with a root `.gitignore`. The original `expose/`, `thesis/`, `prototype/`, and `prompts/` layout was not adopted. At that time, `evaluation/development/` and `evaluation/frozen_test/` existed but contained no evaluation material.
+
+**Status clarification (2026-11-04):** `evaluation/development/` now contains a versioned four-case assistant intent set and real-provider runner. There is still no frozen final evaluation set.
 
 ## D-012 Usability measured with SUS
 **Date:** 2026-10-08 **Status:** Accepted
@@ -258,7 +276,9 @@ Author: J. Tietz
 
 **To decide:** ask the supervisors what exists. The source and generation method must be documented, because it limits the generalisability of the results.
 
-**Implementation status:** `database/init/01-schema.sql` creates only `public.patient_dimension(patient_num)` with 20 synthetic rows, and the schema MCP metadata identifies it as `synthetic-connectivity-fixture`. It is a connectivity fixture, not the planned synthetic AKTIN/i2b2 dataset or concept hierarchy. The `evaluation/development/` and `evaluation/frozen_test/` directories are empty; this source decision remains open.
+**Implementation status (as recorded at this decision):** `database/init/01-schema.sql` creates only `public.patient_dimension(patient_num)` with 20 synthetic rows, and the schema MCP metadata identifies it as `synthetic-connectivity-fixture`. It is a connectivity fixture, not the planned synthetic AKTIN/i2b2 dataset or concept hierarchy. At that time, the `evaluation/development/` and `evaluation/frozen_test/` directories were empty; this source decision remains open.
+
+**Status clarification (2026-11-04):** A four-case development intent set now exists, but the synthetic data source and concept hierarchy remain unresolved; the development set is not a replacement for them.
 
 ## D-015 LLM provider and model
 **Date:** 2026-10-08 **Status:** Open
@@ -268,6 +288,8 @@ Author: J. Tietz
 **Options:** an external API model; a locally hosted open-weight model; a comparison of both.
 
 **To decide:** clarify with the supervisors which deployments are allowed. Record the model name, version and parameters for every evaluation run, and repeat requests because outputs are non-deterministic.
+
+**Status clarification (2026-11-04):** The code now supports an optional provider configured by environment variables and a real-provider development runner. The governance decision remains open; no provider/model is approved by this implementation. The current client sends `max_completion_tokens: 512` and leaves sampling settings to provider defaults.
 
 ## D-016 Unrecognized mock-mode input
 **Date:** 2026-10-13 **Status:** Accepted
@@ -280,7 +302,9 @@ Author: J. Tietz
 
 **Consequences:** This decision describes a proposed deterministic mock planner, not the current echo chat. If implemented, its supported phrase set and evaluation scenarios should be documented alongside it.
 
-**Implementation status:** No mock planner or chat application is present, so this accepted behavior is not currently implemented in the repository.
+**Implementation status (as recorded at this decision):** No mock planner or chat application existed at that point, so this accepted behavior was not implemented.
+
+**Status clarification (2026-11-04):** The FastAPI Echo/debug and optional LLM chat workflows now exist. The deterministic phrase-list mock planner described by D-016 still does not; its clarification behavior should not be attributed to the current assistant.
 
 ## D-017 Multi-MCP Server Architecture
 **Date:** 2026-10-13 **Status:** Accepted 
@@ -364,6 +388,8 @@ The LLM and MCP servers do not receive database credentials. No MCP context serv
 
 **Implementation status:** `gateway/app/policy.py`, `gateway/app/execution.py`, and `gateway/app/audit.py` implement the enforcement boundary for one count-query structure. Audit records are persisted in SQLite at `/app/audit/events.sqlite` by default. The application separately writes sanitized operational events as JSONL; it does not store a complete conversation transcript or expose a logs API.
 
+**Status clarification (2026-11-04):** The optional assistant now obtains proposals from the configured model and passes supported proposals through this same gateway boundary. The decision's separation of informational context from enforcement continues to apply.
+
 
 ## D-021 Curated, versioned JSON metadata with no database access
 **Date:** 2026-11-02 **Status:** Accepted
@@ -398,7 +424,7 @@ Development examples must not contain frozen final-test questions, reference out
 1. Unit tests for metadata loading, returned fields, versions, and example/policy consistency.
 2. MCP integration tests for connection, initialization, tool discovery, and invocation against each container.
 
-The application will handle an unavailable context server explicitly and log the failure. It must not silently treat missing schema or constraints as approval to execute a query. The final degraded-mode behavior—fail the request or proceed using another approved source—must be specified per context type before model integration.
+The application will handle an unavailable context server explicitly and log the failure. It must not silently treat missing schema or constraints as approval to execute a query. At the time of this decision, the final degraded-mode behavior—fail the request or proceed using another approved source—still needed specification per context type before model integration.
 
 **Alternatives considered:**
 - *Test only through the final chat interface:* rejected because it would make MCP failures difficult to isolate.
@@ -409,3 +435,5 @@ The application will handle an unavailable context server explicitly and log the
 **Consequences:** Unit tests can run without PostgreSQL or a model. Integration tests require the MCP services and their Docker network. The application must not make a successful query depend on fabricated context when an essential context service is unavailable.
 
 **Implementation status:** `mcp_servers/tests/test_context.py` calls server tool functions directly. `mcp_servers/smoke_test.py` performs protocol initialization, discovery, and invocation against running services. The application client and status endpoint handle servers independently; invoking a tool on an unavailable server returns a controlled error without fabricating context. The browser's status view does not make an unavailable server block other services.
+
+**Status clarification (2026-11-04):** The optional assistant now requires all three fixed context tools; any failure or timeout fails that assistant request with `503 context_unavailable` before the model is called. Independent status inspection and direct debug-tool behavior remain available.

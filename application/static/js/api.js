@@ -39,6 +39,31 @@ export function sendChat(message, signal) {
   });
 }
 
+export async function askAssistant(question, signal) {
+  const response = await fetch("/api/assistant", {
+    method: "POST",
+    signal,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Query-Action": "submit",
+    },
+    body: JSON.stringify({ question }),
+  });
+
+  let body;
+  try { body = await response.json(); } catch { body = {}; }
+
+  if (!response.ok) {
+    const error = new ApiError("Assistant request failed", {
+      status: response.status,
+      code: body?.detail?.code ?? "assistant_request_failed",
+    });
+    throw error;
+  }
+
+  return body;
+}
+
 export function getHealth(signal) { return requestJSON("/health/live", { signal }); }
 export function getConnections(signal) { return requestJSON("/api/mcp/status", { signal }); }
 
