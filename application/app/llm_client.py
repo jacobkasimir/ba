@@ -20,6 +20,9 @@ SELECT COUNT(*) FROM public.patient_dimension
 
 Questions requiring filters, joins, individual records, other tables,
 clinical interpretation, or other statistics are unsupported.
+The question must clearly identify this row-count operation. If its subject
+is unspecified or ambiguous (for example, "Count the table"), return
+unsupported; do not infer the missing subject solely from the context.
 
 The question may be written in English or German.
 

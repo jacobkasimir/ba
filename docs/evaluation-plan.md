@@ -15,12 +15,33 @@ services, the application assistant API, the gateway, or PostgreSQL. It can
 incur provider charges. It is not part of any Dockerfile's `test` target.
 Instructions are in [Operations](operations.md#test-protocol-and-provider-commands).
 
-No provider result artifact is committed in the repository, and no live
-provider call was made as part of this documentation update. The four cases
-are a development check, not a frozen final evaluation set or evidence of
-broad model quality, clinical validity, or usability. They use the current
-20-row connectivity fixture metadata, not the planned synthetic AKTIN/i2b2
-dataset or concept hierarchy.
+The four cases are a development check, not a frozen final evaluation set or
+evidence of broad model quality, clinical validity, or usability. They use the
+current 20-row connectivity fixture metadata, not the planned synthetic
+AKTIN/i2b2 dataset or concept hierarchy.
+
+## Application API evaluation
+
+`evaluation/assistant-cases.jsonl` is a 24-case synthetic set, versioned as
+`assistant-api-v1`. It includes English and German supported-count paraphrases,
+unsupported filters and tables, ambiguous questions, patient-level requests,
+and prompt-injection attempts. Expected cases reflect the current gateway's
+single permitted query. The fixture count is a separate runner check.
+
+Run `evaluation/run_assistant.py` against the application to exercise context
+retrieval, the configured model, gateway policy, and the result schema. The
+runner requires `--allow-live-model-calls`, is not part of unit tests or CI, and
+can incur provider costs. It prints per-case status/failure categories and
+summaries by language and category without saving detailed response bodies.
+See the [dated v1 report](../evaluation/reports/2026-11-05-assistant-api-v1.md)
+for the initial result, reviewed prompt adjustment, and rerun. That report
+preserves the first failure rather than replacing it with the rerun result.
+
+This API evaluation is distinct from the four-case direct-provider intent
+runner: the API runner reaches the configured MCP context and gateway, while
+the direct-provider runner does not. Neither establishes broad semantic
+correctness. Gateway approval alone does not prove that SQL answers the
+natural-language question.
 
 ## Outstanding evaluation decisions
 
