@@ -35,7 +35,20 @@
       <span class="brand-mark" aria-hidden="true">A</span>
       <span><strong>AKTIN Insight</strong><small data-i18n="productCaption">FORSCHUNGSARBEITSPLATZ</small></span>
     </a>
+    <label class="visually-hidden" for="assistant-mode" data-i18n="modeLabel">Modus</label>
+    <select id="assistant-mode" class="visually-hidden" aria-hidden="true" tabindex="-1">
+      <option value="chat" selected>Echo / developer tools</option>
+      <option value="assistant">Assistant</option>
+    </select>
     <div class="top-actions">
+      <div class="mode-switch" role="group" aria-label="Modus" data-i18n-aria="modeLabel">
+        <button class="icon-button mode-icon-button" type="button" data-mode-option="assistant" aria-pressed="false" aria-label="Assistant" title="Assistant" data-i18n-aria="modeAssistant" data-i18n-title="modeAssistant" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.9 5.7L20 11l-6.1 2.3L12 19l-1.9-5.7L4 11l6.1-2.3L12 3Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>
+        </button>
+        <button class="icon-button mode-icon-button" type="button" data-mode-option="chat" aria-pressed="true" aria-label="Echo / developer tools" title="Echo / developer tools" data-i18n-aria="modeChat" data-i18n-title="modeChat">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="m8 9 3 3-3 3m6 0h3"/></svg>
+        </button>
+      </div>
       <div class="language-toggle" role="group" aria-label="Language" data-i18n-aria="language">
         <button type="button" data-language="de" aria-pressed="true">DE</button>
         <span aria-hidden="true">/</span>
@@ -62,7 +75,8 @@
           <div id="suggestion-chips" class="suggestion-chips" aria-label="Beispielfragen"></div>
           <div class="capabilities-note">
             <span class="status-indicator" aria-hidden="true"></span>
-            <span data-i18n="demoNotice">Der aktuelle Chat gibt Nachrichten zurück und ruft auf Wunsch MCP-Kontext ab. Es ist kein Sprachmodell angebunden.</span>
+            <span id="demo-notice" data-i18n="demoNotice">Der aktuelle Chat gibt Nachrichten zurück und ruft auf Wunsch MCP-Kontext ab. Es ist kein Sprachmodell angebunden.</span>
+            <span id="assistant-warning" hidden data-i18n="assistant.disabledNotice">Assistant-Modus ist nicht verfügbar. LLM_ENABLED ist aus oder die Konfiguration ist unvollständig.</span>
           </div>
         </section>
 
@@ -83,11 +97,6 @@
           <button id="cancel-request" type="button" class="text-button" data-i18n="cancel">Abbrechen</button>
         </div>
         <form id="message-form" class="composer">
-          <label class="visually-hidden" for="assistant-mode" data-i18n="modeLabel">Mode</label>
-          <select id="assistant-mode" class="mode-select" aria-label="Mode" data-i18n-aria="modeLabel">
-            <option value="chat" data-i18n="modeChat">Echo / developer tools</option>
-            <option value="assistant" data-i18n="modeAssistant">Assistant</option>
-          </select>
           <label class="visually-hidden" for="message-input" data-i18n="messageLabel">Nachricht</label>
           <textarea id="message-input" rows="1" maxlength="4000" placeholder="Stelle eine Frage oder gib einen /tool-Befehl ein …" data-i18n-placeholder="placeholder" autocomplete="off" required></textarea>
           <button id="send-button" class="send-button" type="submit" aria-label="Senden" title="Senden">

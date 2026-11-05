@@ -7,8 +7,10 @@ const colorScheme = matchMedia("(prefers-color-scheme: dark)");
 const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
 const assistantErrorCodes = new Set([
   "explicit_query_action_required", "assistant_not_configured", "assistant_busy",
-  "assistant_timeout", "invalid_gateway_response", "gateway_busy",
-  "gateway_timeout", "gateway_unavailable", "gateway_authentication_failed", "gateway_error",
+  "assistant_timeout", "context_unavailable", "llm_provider_error",
+  "llm_timeout", "llm_unavailable", "invalid_llm_response",
+  "invalid_gateway_response", "gateway_busy", "gateway_timeout",
+  "gateway_unavailable", "gateway_authentication_failed", "gateway_error",
 ]);
 
 export function startApp() {
@@ -23,6 +25,7 @@ export function startApp() {
   let drawerReturnFocus = null;
   let activeTab = "connections";
   let connectionData = null;
+  let assistantConfigured = false;
   let backendUnavailable = false;
   let queryStatusKey = "";
   let queryOutputKey = "";
@@ -36,6 +39,7 @@ export function startApp() {
   const composer = $("message-form");
   const input = $("message-input");
   const assistantMode = $("assistant-mode");
+  const assistantModeButtons = document.querySelectorAll("[data-mode-option]");
   const sendButton = $("send-button");
   const loadingRow = $("loading-row");
   const requestStatus = $("request-status");
@@ -113,9 +117,40 @@ export function startApp() {
     });
   }
 
+  function syncModeNotice() {
+    const notice = $("demo-notice");
+    const warning = $("assistant-warning");
+    if (notice) {
+      notice.textContent = t(
+        settings.language,
+        assistantMode.value === "assistant" ? "assistant.modeNotice" : "demoNotice",
+      );
+    }
+    if (warning) {
+      warning.hidden = assistantConfigured;
+      warning.textContent = t(settings.language, "assistant.disabledNotice");
+    }
+  }
+
+  function setAssistantConfigured(configured) {
+    assistantConfigured = configured === true;
+    const assistantButton = [...assistantModeButtons].find(
+      (button) => button.dataset.modeOption === "assistant",
+    );
+    if (assistantButton) assistantButton.disabled = !assistantConfigured;
+    if (!assistantConfigured && assistantMode.value === "assistant") {
+      assistantMode.value = "chat";
+    }
+    assistantModeButtons.forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.modeOption === assistantMode.value));
+    });
+    syncModeNotice();
+  }
+
   function applySettings() {
     applyVisualSettings(settings, colorScheme, motionPreference);
     applyTranslations(settings.language);
+    syncModeNotice();
     syncSettingsControls();
     renderWelcome();
     renderChat();
@@ -295,12 +330,14 @@ export function startApp() {
     try {
       const [health, services] = await Promise.all([getHealth(), getConnections()]);
       connectionData = { health, services };
+      setAssistantConfigured(health.assistant_configured);
       setBackendUnavailable(false);
       renderConnections(connectionData);
       connectionStatusKey = "statusDone";
       connectionStatus.textContent = t(settings.language, connectionStatusKey);
     } catch {
       connectionData = { health: null, services: null };
+      setAssistantConfigured(false);
       setBackendUnavailable(true);
       renderConnections(connectionData);
       connectionStatusKey = "statusFailed";
@@ -511,6 +548,14 @@ export function startApp() {
   document.querySelectorAll("[data-language]").forEach((button) => button.addEventListener("click", () => updateSetting("language", button.dataset.language)));
   $("theme-select").addEventListener("change", (event) => updateSetting("theme", event.target.value));
   $("theme-quick-toggle").addEventListener("click", () => updateSetting("theme", html.dataset.theme === "dark" ? "light" : "dark"));
+  assistantModeButtons.forEach((button) => button.addEventListener("click", () => {
+    if (button.dataset.modeOption === "assistant" && !assistantConfigured) return;
+    assistantMode.value = button.dataset.modeOption;
+    assistantModeButtons.forEach((option) => {
+      option.setAttribute("aria-pressed", String(option === button));
+    });
+    syncModeNotice();
+  }));
   $("setting-font-size").addEventListener("change", (event) => updateSetting("fontSize", event.target.value));
   $("setting-density").addEventListener("change", (event) => updateSetting("density", event.target.value));
   $("setting-motion").addEventListener("change", (event) => updateSetting("reduceMotion", event.target.value));

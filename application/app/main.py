@@ -206,9 +206,13 @@ def frontend():
     )
 
 @app.get("/health/live")
-def live():
+def live(request: Request):
     """Check whether the application process is running."""
-    return {"status": "running", "mode": "echo"}
+    return {
+        "status": "running",
+        "mode": "echo",
+        "assistant_configured": request.app.state.assistant is not None,
+    }
 
 
 @app.get("/api/mcp/status")
