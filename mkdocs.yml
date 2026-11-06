@@ -1,0 +1,83 @@
+site_name: AKTIN Insight Documentation
+site_description: Project documentation and Python API reference for AKTIN Insight.
+docs_dir: /worktree
+site_dir: /site
+strict: true
+use_directory_urls: true
+
+theme:
+  name: material
+  language: en
+  font: false
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: green
+      accent: light green
+      toggle:
+        icon: material/weather-night
+        name: Use dark mode
+    - scheme: slate
+      primary: green
+      accent: light green
+      toggle:
+        icon: material/weather-sunny
+        name: Use light mode
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+
+extra_css:
+  - docs/assets/css/docs.css
+extra_javascript:
+  - docs/assets/js/docs-ui.js
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    not_found: warn
+    anchors: warn
+
+nav:
+  - Home: index.md
+  - Project overview: project-overview.md
+  - Documentation workflow: docs/documentation.md
+  - Architecture: docs/architecture.md
+  - Application:
+      - Application and MCP: docs/app_mcp_integration.md
+      - Frontend: docs/frontend_integration.md
+      - Python API reference: docs/python-api.md
+  - Development and operations: docs/operations.md
+  - LLM integration: docs/llm-integration.md
+  - Gateway:
+      - Policy: docs/policy.md
+      - Gateway API: docs/gateway-v1.md
+  - Security: docs/threat-model.md
+  - Data dictionary: docs/data-dictionary.md
+  - Decisions: docs/decision.md
+  - Evaluation:
+      - Evaluation plan: docs/evaluation-plan.md
+      - Assistant API v1 report: evaluation/reports/2026-11-05-assistant-api-v1.md
+  - Legacy links: docs/llm_integration.md

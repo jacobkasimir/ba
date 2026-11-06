@@ -164,6 +164,10 @@ async def lifespan(app: FastAPI):
                 base_url=settings["LLM_BASE_URL"],
                 api_key=settings["LLM_API_KEY"],
                 model=settings["LLM_MODEL"],
+                log_raw_responses=(
+                    os.getenv("LLM_LOG_RAW_RESPONSES", "false").lower()
+                    == "true"
+                ),
             )
 
             app.state.assistant = AssistantService(
@@ -185,6 +189,14 @@ app = FastAPI(
     title="AKTIN Prototype Application",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def revalidate_static_assets(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/") or request.url.path.startswith("/project-docs"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 app.include_router(query_router)
 app.include_router(assistant_router)
@@ -334,3 +346,12 @@ async def chat(body: ChatRequest, request: Request):
         "tool": tool_name,
         "result": result,
     }
+
+
+# Keep FastAPI Swagger UI at /docs. Project documentation uses a separate
+# same-origin prefix and is served from a generated, read-only Compose volume.
+app.mount(
+    "/project-docs",
+    StaticFiles(directory="/app/docs-site", html=True, check_dir=False),
+    name="project-docs",
+)

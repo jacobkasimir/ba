@@ -29,6 +29,7 @@ Author: J. Tietz
 | D-020 | 2026-11-01 | MCP context is informational; the deterministic query gateway remains the sole authority for SQL validation, execution, suppression, and audit | Accepted |
 | D-021 | 2026-11-02 | MCP context is versioned, reviewed JSON metadata; MCP servers have no database credentials and do not execute SQL | Accepted |
 | D-022 | 2026-11-02 | Test each MCP server independently, then test MCP discovery and invocation across containers; one server being unavailable must not prevent the others from being used | Accepted |
+| D-023 | 2026-11-06 | Bind-mount frontend assets in local Compose for UI edits without restarting the application | Accepted |
 
 ## Status clarification (2026-11-04; historical entries preserved)
 
@@ -437,3 +438,21 @@ The application will handle an unavailable context server explicitly and log the
 **Implementation status:** `mcp_servers/tests/test_context.py` calls server tool functions directly. `mcp_servers/smoke_test.py` performs protocol initialization, discovery, and invocation against running services. The application client and status endpoint handle servers independently; invoking a tool on an unavailable server returns a controlled error without fabricating context. The browser's status view does not make an unavailable server block other services.
 
 **Status clarification (2026-11-04):** The optional assistant now requires all three fixed context tools; any failure or timeout fails that assistant request with `503 context_unavailable` before the model is called. Independent status inspection and direct debug-tool behavior remain available.
+
+
+## D-023 Mount frontend assets during local development
+**Date:** 2026-11-06 **Status:** Accepted
+
+**Context:** The browser frontend is packaged in the application image and served by FastAPI from `/app/static`. Rebuilding and replacing that image for every HTML, CSS, or JavaScript edit also restarts the application process, including its configured LLM client.
+
+**Decision:** In the local Docker Compose setup, bind-mount `./application/static` read-only at `/app/static`. Frontend-only edits are then served from the working tree without rebuilding or restarting the application container. Python and API changes continue to use the normal image build and container recreation workflow. Do not use this development bind mount in a deployment image; package the frontend assets with the application there.
+
+**Alternatives considered:**
+- *Rebuild and recreate the application for every frontend edit:* simple, but needlessly restarts the API process during UI iteration.
+- *Serve the frontend as an independently deployed service:* allows separate releases, but adds deployment and routing complexity that is not needed for local development.
+
+**Reason:** The existing FastAPI static-file setup already serves assets from one directory, so a read-only Compose bind mount gives immediate local UI iteration with a small, development-scoped change. The application and LLM client remain one service because the provider client makes requests as needed and does not maintain a persistent model connection.
+
+**Consequences:** The local host's `application/static` directory becomes the source of truth for served frontend assets. The application container must be recreated once after adding the mount. Frontend edits thereafter do not require a rebuild or restart; backend edits still do. Deployment configuration must omit the bind mount and include the static assets in the built image.
+
+**Implementation status:** `compose.yaml` mounts `./application/static:/app/static:ro`. `docs/operations.md` documents the local development behavior and deployment scope.

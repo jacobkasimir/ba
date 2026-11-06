@@ -197,10 +197,10 @@ def test_frontend_index_is_served(client):
     assert 'id="language-select"' in response.text
     assert 'id="theme-select"' in response.text
     assert 'aria-labelledby="chat-title"' in response.text
-    assert 'localStorage.getItem("aktin-theme")' in response.text
-    assert 'localStorage.getItem("aktin-language")' in response.text
+    assert '"aktin.frontend.settings.v1"' in response.text
+    assert 'class="docs-link" href="/project-docs/"' in response.text
     assert 'document.documentElement.lang = language' in response.text
-    assert 'window.matchMedia("(prefers-color-scheme: dark)")' in response.text
+    assert 'matchMedia("(prefers-color-scheme: dark)")' in response.text
     assert "/static/app.js" in response.text
 
 
@@ -210,19 +210,22 @@ def test_frontend_javascript_is_served(client):
     response = client.get("/static/app.js")
 
     assert response.status_code == 200
-    assert 'const CHAT_URL = "/api/chat"' in response.text
-    assert 'const MCP_STATUS_URL = "/api/mcp/status"' in response.text
-    assert 'const HEALTH_URL = "/health/live"' in response.text
-    assert 'const QUERY_URL = "/api/query"' in response.text
-    assert '"X-Query-Action": "submit"' in response.text
-    assert '"aktin-language"' in response.text
-    assert '"aktin-theme"' in response.text
-    assert "prefers-color-scheme: dark" in response.text
-    assert "html.dataset.theme = resolveTheme(theme)" in response.text
-    assert "html.lang = language" in response.text
-    assert "response.generated_sql" in response.text
-    assert "JSON.stringify({ message })" in response.text
-    assert "JSON.stringify({ sql })" in response.text
+    assert 'import { startApp } from "./js/app.js"' in response.text
+    assert "startApp();" in response.text
+
+    settings = client.get("/static/js/settings.js")
+    api = client.get("/static/js/api.js")
+    app = client.get("/static/js/app.js")
+    assert settings.status_code == api.status_code == app.status_code == 200
+    assert 'SETTINGS_KEY = "aktin.frontend.settings.v1"' in settings.text
+    assert '"/api/chat"' in api.text
+    assert '"/api/mcp/status"' in api.text
+    assert '"/health/live"' in api.text
+    assert '"/api/query"' in api.text
+    assert '"X-Query-Action": "submit"' in api.text
+    assert 'JSON.stringify({ message })' in api.text
+    assert 'JSON.stringify({ sql })' in api.text
+    assert 'import { t, applyTranslations } from "./i18n.js"' in app.text
 
 
 def test_frontend_stylesheet_is_served(client):

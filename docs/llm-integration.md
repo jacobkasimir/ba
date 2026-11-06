@@ -20,7 +20,7 @@ AssistantService
 Gateway validates, audits, executes its fixed SQL, and suppresses if needed
        |
        v
-AssistantReply {status, proposed_sql, count}
+AssistantReply {status, proposed_sql, count, reason, answer}
 ```
 
 The assistant request is an explicit user action in the Assistant UI mode.
@@ -70,7 +70,9 @@ The model receives the current question and all three curated MCP documents
 receive previous chat messages, database credentials, gateway credentials,
 database records, query results, or the gateway response. The gateway
 receives the proposed SQL and service-to-service key, not the question or MCP
-context. The application does not log assistant questions or model output.
+context. By default the application does not log assistant questions or model
+output. A temporary `LLM_LOG_RAW_RESPONSES=true` diagnostic option logs the
+provider's raw response body; see [Operations](operations.md#troubleshooting).
 
 MCP data and prompt instructions are informational, not a security boundary.
 The deterministic gateway is authoritative for policy, audit, execution, and
@@ -89,12 +91,13 @@ X-Query-Action: submit
 ```
 
 ```json
-{"question":"How many records are in the synthetic patient table?"}
+{"question":"How many records are in the synthetic patient table?","language":"en"}
 ```
 
 `question` is trimmed, must be nonblank, and is limited to 4,000 characters;
-extra request fields are rejected. Typical response bodies include nullable
-fields because the response model does not omit `null` values:
+`language` is `de` or `en` and follows the selected UI language. Extra request
+fields are rejected. Typical response bodies include nullable fields because
+the response model does not omit `null` values:
 
 ```json
 {"status":"completed","proposed_sql":"SELECT COUNT(*) FROM public.patient_dimension","count":20}
@@ -105,8 +108,16 @@ fields because the response model does not omit `null` values:
 ```
 
 ```json
-{"status":"unsupported","proposed_sql":null,"count":null}
+{"status":"unsupported","proposed_sql":null,"count":null,"reason":"The question is not a database query request.","answer":"A general answer to the question."}
 ```
+
+When the model returns an empty SQL string, the application treats it as no
+proposal. It returns the model's normal answer and reason, skips the gateway,
+and the UI adds a localized notice that no database query was made and no SQL
+was checked or sent. The UI language setting controls that notice; the model's
+normal answer follows the selected UI language, even when the question itself
+uses the other language. That answer is limited to one to three concise bullet
+points, each on its own line. No supported-query example is shown in this case.
 
 ```json
 {"status":"rejected","proposed_sql":"SELECT * FROM public.patient_dimension","count":null}
@@ -237,7 +248,11 @@ untrusted or public deployment.
 Application JSONL events cover echo character counts, MCP status, direct tool
 names, tool errors, and context versions; they omit full echo text, tool
 arguments, and context results. The assistant route does not log the question,
-prompt, proposal, or result. Separately, the gateway audit stores request ID,
+prompt, proposal, or result by default. When raw-response diagnostics are
+enabled, the provider response is written to container stdout, bounded to
+64 KiB for successful responses and 8 KiB for non-200 responses. Treat those
+logs as potentially sensitive and disable the option after debugging.
+Separately, the gateway audit stores request ID,
 timestamp, policy version, a SHA-256 hash of submitted SQL, event/reason, and
 the gateway-owned executed SQL after execution. It does not store raw submitted
 SQL or result counts. Receipt and final audit failures block execution or

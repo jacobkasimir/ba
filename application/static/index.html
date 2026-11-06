@@ -41,6 +41,7 @@
       <option value="assistant">Assistant</option>
     </select>
     <div class="top-actions">
+      <a class="docs-link" href="/project-docs/" data-i18n="docsLink">Doku</a>
       <div class="mode-switch" role="group" aria-label="Modus" data-i18n-aria="modeLabel">
         <button class="icon-button mode-icon-button" type="button" data-mode-option="assistant" aria-pressed="false" aria-label="Assistant" title="Assistant" data-i18n-aria="modeAssistant" data-i18n-title="modeAssistant" disabled>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.9 5.7L20 11l-6.1 2.3L12 19l-1.9-5.7L4 11l6.1-2.3L12 3Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>
@@ -75,7 +76,7 @@
           <div id="suggestion-chips" class="suggestion-chips" aria-label="Beispielfragen"></div>
           <div class="capabilities-note">
             <span class="status-indicator" aria-hidden="true"></span>
-            <span id="demo-notice" data-i18n="demoNotice">Der aktuelle Chat gibt Nachrichten zurück und ruft auf Wunsch MCP-Kontext ab. Es ist kein Sprachmodell angebunden.</span>
+            <span id="demo-notice" data-i18n="demoNotice">Der Echo-Modus gibt Nachrichten zurück und ruft auf Wunsch MCP-Kontext ab. Der optionale Assistant-Modus nutzt ein Sprachmodell.</span>
             <span id="assistant-warning" hidden data-i18n="assistant.disabledNotice">Assistant-Modus ist nicht verfügbar. LLM_ENABLED ist aus oder die Konfiguration ist unvollständig.</span>
           </div>
         </section>
@@ -159,14 +160,14 @@
         <select id="theme-select"><option value="dark" data-i18n="dark">Dunkel</option><option value="light" data-i18n="light">Hell</option><option value="system" data-i18n="system">System</option></select>
         <label for="setting-font-size" data-i18n="fontSize">Schriftgröße</label>
         <select id="setting-font-size"><option value="small" data-i18n="small">Klein</option><option value="medium" data-i18n="medium">Mittel</option><option value="large" data-i18n="large">Groß</option></select>
-        <label for="setting-density" data-i18n="density">Abstand</label>
+        <label for="setting-density" data-i18n="density">Chat-Abstand</label>
         <select id="setting-density"><option value="comfortable" data-i18n="comfortable">Komfortabel</option><option value="compact" data-i18n="compact">Kompakt</option></select>
         <label for="setting-motion" data-i18n="motion">Bewegung</label>
         <select id="setting-motion"><option value="auto" data-i18n="auto">Automatisch</option><option value="on" data-i18n="motionOn">Reduzieren</option><option value="off" data-i18n="motionOff">Nicht reduzieren</option></select>
-        <label for="setting-autocomplete" data-i18n="autocomplete">Vorschläge</label><input id="setting-autocomplete" type="checkbox" checked>
-        <label for="setting-show-sql" data-i18n="showSql">SQL standardmäßig anzeigen</label><input id="setting-show-sql" type="checkbox" checked>
-        <label for="setting-show-details" data-i18n="showDetails">Details standardmäßig anzeigen</label><input id="setting-show-details" type="checkbox" checked>
-        <label for="setting-name" data-i18n="displayName">Anzeigename</label><input id="setting-name" type="text" maxlength="40" autocomplete="nickname">
+        <label for="setting-autocomplete" data-i18n="autocomplete">Inline-Vervollständigung</label><input id="setting-autocomplete" type="checkbox" checked>
+        <label for="setting-show-sql" data-i18n="showSql">SQL standardmäßig öffnen</label><input id="setting-show-sql" type="checkbox" checked>
+        <label for="setting-show-details" data-i18n="showDetails">Details standardmäßig öffnen</label><input id="setting-show-details" type="checkbox" checked>
+        <label for="setting-name" data-i18n="displayName">Name in der Begrüßung</label><input id="setting-name" type="text" maxlength="40" autocomplete="nickname">
       </div>
       <div class="setting-actions"><button id="clear-button" class="small-button" type="button" data-i18n="newChat">Neuer Chat</button><button id="reset-settings" class="text-button" type="button" data-i18n="resetSettings">Auf Standard zurücksetzen</button></div>
     </section>
@@ -178,11 +179,10 @@
 
     <section id="panel-about" class="drawer-panel" role="tabpanel" aria-labelledby="tab-about" hidden>
       <p class="eyebrow" data-i18n="aboutEyebrow">ÜBER DIESES WERKZEUG</p><h3 data-i18n="aboutTitle">Forschungsprototyp</h3>
-      <p class="panel-description" data-i18n="aboutBody">Der aktuelle Chat unterstützt Echo-Antworten und konfigurierte MCP-Kontextwerkzeuge. Es ist keine LLM-Analyse angebunden. SQL-Vorschläge werden separat an das Query-Gateway gesendet.</p>
-      <p class="panel-description" data-i18n="aboutPrivacy">Nachrichten und Antworten werden nicht im Browser gespeichert. Einstellungen bleiben lokal in diesem Browser.</p>
+      <p class="panel-description" data-i18n="aboutBody">Der Echo-Modus unterstützt Echo-Antworten und konfigurierte MCP-Kontextwerkzeuge. Im optionalen Assistant-Modus erstellt ein Sprachmodell SQL-Vorschläge; unterstützt wird nur die Gesamtzahl der Zeilen in der synthetischen Patiententabelle. Vorschläge werden separat vom Query-Gateway geprüft.</p>
+      <p class="panel-description" data-i18n="aboutPrivacy">Der Gesprächsverlauf bleibt nur während der aktuellen Sitzung im Arbeitsspeicher und wird nicht dauerhaft gespeichert. Einstellungen bleiben lokal in diesem Browser.</p>
       <p class="panel-description" data-i18n="shortcuts">Tastenkürzel: Cmd/Ctrl+K Eingabe fokussieren · Cmd/Ctrl+Shift+O Neuer Chat · ? Tastenkürzel anzeigen</p>
     </section>
   </aside>
-<!-- Preferences are read by the settings module; legacy keys: localStorage.getItem("aktin-theme"), localStorage.getItem("aktin-language"); document.documentElement.lang = language; window.matchMedia("(prefers-color-scheme: dark)"). -->
 </body>
 </html>

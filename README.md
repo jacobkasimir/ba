@@ -47,6 +47,11 @@ The development evaluation set and its limits are described in
 
 ## Documentation
 
+The integrated documentation is served at <http://127.0.0.1:8080/project-docs/>
+when the local Compose stack is running. See
+[Documentation development](docs/documentation.md) for the live Markdown and
+pdoc workflow, strict builds, and static production output.
+
 - [Architecture](docs/architecture.md)
 - [Application and MCP integration](docs/app_mcp_integration.md)
 - [Frontend behavior](docs/frontend_integration.md)

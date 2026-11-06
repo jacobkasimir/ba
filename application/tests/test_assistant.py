@@ -20,7 +20,7 @@ def build_test_app(
     gateway_error=None,
     context_error=False,
 ):
-    calls = {"context": 0, "llm": 0, "gateway": []}
+    calls = {"context": 0, "llm": 0, "gateway": [], "language": None}
 
     async def load_context():
         calls["context"] += 1
@@ -28,8 +28,9 @@ def build_test_app(
             raise AssistantError(503, "context_unavailable")
         return {"schema": {}, "policy": {}, "examples": {}}
 
-    async def propose(question, context):
+    async def propose(question, context, language="de"):
         calls["llm"] += 1
+        calls["language"] = language
         return decision
 
     async def submit(sql):
@@ -74,6 +75,8 @@ def test_supported_question_returns_gateway_count(count):
     assert response.json() == {
         "status": "completed",
         "proposed_sql": SQL,
+        "reason": None,
+        "answer": None,
         "count": count,
     }
     assert calls["gateway"] == [SQL]
@@ -95,6 +98,35 @@ def test_unsupported_question_does_not_call_gateway():
     assert response.status_code == 200
     assert response.json()["status"] == "unsupported"
     assert calls["gateway"] == []
+
+
+def test_unsupported_candidate_is_returned_without_calling_gateway():
+    candidate = "SELECT * FROM public.patient_dimension"
+    app, calls = build_test_app(
+        decision=LLMDecision(
+            action="unsupported",
+            sql=candidate,
+            reason="Individual patient rows are outside the supported scope.",
+        ),
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/assistant",
+            json={"question": "Show patient rows", "language": "en"},
+            headers=HEADERS,
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "unsupported",
+        "proposed_sql": candidate,
+        "reason": "Individual patient rows are outside the supported scope.",
+        "answer": None,
+        "count": None,
+    }
+    assert calls["gateway"] == []
+    assert calls["language"] == "en"
 
 
 def test_suppression_remains_null():

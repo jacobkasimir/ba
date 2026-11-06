@@ -18,6 +18,9 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-
 .mode-icon-button[aria-pressed="true"]:hover { border-color: var(--primary); color: var(--on-primary); }
 .mode-icon-button:disabled { cursor: not-allowed; background: var(--surface); color: var(--muted); }
 .top-actions { display: flex; align-items: center; gap: 12px; }
+.docs-link { display: inline-flex; min-height: 38px; align-items: center; padding: 0 10px; border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 12px; font-weight: 650; text-decoration: none; }
+.docs-link:hover { border-color: var(--accent); color: var(--accent); }
+.docs-link:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .language-toggle { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; }
 .language-toggle button { min-width: 34px; min-height: 36px; padding: 5px 7px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 650; }
 .language-toggle button[aria-pressed="true"] { background: var(--surface-2); color: var(--accent); }
@@ -105,7 +108,11 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-
 .safety-note { margin: 8px 4px 0; color: var(--muted); text-align: center; font-size: 10px; }
 .scope-notice { margin: 7px 4px 0; color: var(--muted); text-align: center; font-size: 10px; line-height: 1.45; }
 .assistant-count { margin-top: 10px; font-size: 20px; font-variant-numeric: tabular-nums; }
-.completion-preview { position: absolute; z-index: 0; inset: 18px 62px auto 18px; overflow: hidden; color: transparent; pointer-events: none; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
+.assistant-reason { margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.assistant-supported-query { margin-top: 12px; padding: 11px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.assistant-supported-query h4 { margin: 0 0 7px; color: var(--text); font-size: 11px; font-weight: 650; }
+.assistant-supported-query .sql-code { overflow-x: auto; padding: 8px 0 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; }
+.completion-preview { position: absolute; z-index: 0; inset: 18px 62px auto 18px; overflow: hidden; color: var(--text); pointer-events: none; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
 .completion-preview .ghost-rest { color: color-mix(in srgb, var(--muted) 65%, transparent); }
 .composer.has-ghost textarea { position: relative; z-index: 1; background: transparent; color: transparent; caret-color: var(--accent); }
 .composer.has-ghost textarea::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
@@ -171,6 +178,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-
   .mode-switch { position: static; gap: 3px; transform: none; }
   .mode-switch .icon-button { width: 32px; height: 38px; flex-basis: 32px; }
   .top-actions { margin-top: 0; gap: 4px; }
+  .docs-link { min-height: 36px; padding: 0 6px; font-size: 11px; }
   .brand-mark { width: 31px; height: 31px; flex-basis: 31px; }
   .brand strong { font-size: 12px; }
   .brand small { font-size: 8px; }
@@ -204,6 +212,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-
   .brand-mark { width: 26px; height: 26px; flex-basis: 26px; }
   .brand strong { font-size: 10px; }
   .top-actions { gap: 2px; }
+  .docs-link { padding-right: 4px; padding-left: 4px; font-size: 10px; }
   .mode-switch .icon-button { width: 30px; flex-basis: 30px; }
   .top-actions > .icon-button { width: 32px; flex-basis: 32px; }
   .language-toggle { gap: 1px; }

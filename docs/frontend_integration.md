@@ -8,8 +8,10 @@ separate Assistant mode when the backend feature is enabled. See
 
 ## Routes and workflows
 
-Static routes include `GET /`, `/static/style.css`, `/static/app.js`, and the
-JavaScript/CSS modules. The UI uses these application APIs:
+Static routes include `GET /`, `/static/style.css`, `/static/app.js`, the
+JavaScript/CSS modules, and the generated project documentation at
+`/project-docs/`. FastAPI's Swagger UI remains at `/docs`. The UI uses these
+application APIs:
 
 | UI action | Route | Result |
 |---|---|---|
@@ -38,10 +40,10 @@ safe text rendering. Preferences are stored in versioned browser local
 storage; chat history is not persisted there. Dynamic question, SQL, and
 response content is written as text, not HTML.
 
-There is a known copy inconsistency: `demoNotice` and `aboutBody` translations
-in `application/static/js/i18n.js` still say no language model is connected,
-although the assistant mode now exists. This documentation-only change does
-not alter those frontend strings.
+The Docs topbar link follows the selected UI language. The documentation site
+uses that preference for its return link, color scheme, and document language
+metadata. The existing Markdown pages retain their source languages and are
+not translated as a whole.
 
 ## Limits
 

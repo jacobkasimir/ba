@@ -27,6 +27,7 @@ class AssistantError(Exception):
 
 class AssistantRequest(StrictModel):
     question: str = Field(min_length=1, max_length=4000)
+    language: Literal["de", "en"] = "de"
 
     @field_validator("question")
     @classmethod
@@ -40,15 +41,14 @@ class AssistantRequest(StrictModel):
 class LLMDecision(StrictModel):
     action: Literal["propose", "unsupported"]
     sql: str | None = Field(max_length=2000)
+    reason: str | None = Field(default=None, max_length=500)
+    answer: str | None = Field(default=None, max_length=2000)
 
     @model_validator(mode="after")
     def validate_decision(self):
         if self.action == "propose":
             if self.sql is None or not self.sql.strip():
                 raise ValueError("A proposal requires SQL")
-
-        if self.action == "unsupported" and self.sql is not None:
-            raise ValueError("Unsupported questions must not include SQL")
 
         return self
 
@@ -78,4 +78,6 @@ class AssistantReply(StrictModel):
         "rejected",
     ]
     proposed_sql: str | None = None
+    reason: str | None = None
+    answer: str | None = None
     count: int | None = Field(default=None, ge=0)

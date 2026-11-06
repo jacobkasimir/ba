@@ -42,6 +42,13 @@ After changing environment variables, recreate the application container:
 docker compose up -d --force-recreate application
 ```
 
+The application service bind-mounts `./application/static` at `/app/static`.
+Changes to HTML, CSS, and JavaScript files are served immediately, without
+rebuilding or restarting the application container. Python/API changes still
+require rebuilding and recreating the application service. This bind mount is
+intended for local development; remove it in a deployment that packages the
+frontend into the application image.
+
 Stop services with `docker compose down`. This retains named volumes; it does
 not delete PostgreSQL data, gateway audit records, or application logs.
 
@@ -56,6 +63,7 @@ project `.env`. The application receives the following variables:
 | `LLM_BASE_URL` | Required when enabled | Absolute HTTP(S) provider API base URL; the client appends `chat/completions`. |
 | `LLM_API_KEY` | Required when enabled | Provider credential sent as a Bearer token; held by the application container. |
 | `LLM_MODEL` | Required when enabled | Provider deployment/model identifier accepted by that endpoint. |
+| `LLM_LOG_RAW_RESPONSES` | `false` | Temporary diagnostic opt-in that writes bounded raw provider response bodies to the application container log. May include generated content; keep disabled outside local debugging. |
 | `APP_GATEWAY_URL` | `http://host.docker.internal:8001` in Compose | Gateway base URL; must be paired with `APP_GATEWAY_KEY`. |
 | `APP_GATEWAY_KEY` | Mapped from `GATEWAY_API_KEY` | Shared server-to-server key sent as `X-Gateway-Key`. |
 | `APP_GATEWAY_TIMEOUT` | `12` seconds | Application-to-gateway timeout. |
@@ -150,6 +158,7 @@ test that connects a live provider, MCP services, gateway, and PostgreSQL.
 | `/api/assistant` returns `assistant_not_configured` | Check `LLM_ENABLED` inside the running application container. Recreate it after changing Compose variables. An exported shell variable overrides `.env`. |
 | `/api/assistant` returns `context_unavailable` | Call `/api/mcp/status`; ensure all three MCP services are running and the configured tool names match `config/mcp_servers.json`. Context errors are deliberately collapsed to this code. |
 | `llm_provider_error` | The provider returned non-200; the browser sees only a safe error code. The development evaluator can optionally print bounded provider error fields with `LLM_EVAL_PROVIDER_DIAGNOSTICS=1`. Confirm deployment ID, auth, and support for strict JSON Schema plus `max_completion_tokens`. |
+| `invalid_llm_response` | Temporarily set `LLM_LOG_RAW_RESPONSES=true` in `.env`, recreate the application, retry once, and inspect `docker compose logs --since=5m application`. The response body is escaped and bounded (64 KiB for success, 8 KiB for provider errors). Turn the option off and recreate the application after debugging; logs may contain generated or echoed content. |
 | `gateway_unavailable` / `gateway_authentication_failed` | Check the application gateway URL/key pair, gateway container, and shared key mapping. |
 | Gateway returns `query_rejected` | The proposal did not match the exact supported SQL shape or gateway input constraints. No SQL repair/retry is performed. |
 | Gateway readiness/query fails against local PostgreSQL | Check database status and logs. On an existing `pgdata` volume, init scripts do not rerun. With a custom `DB_USER`, the fixed `user` role from `database/init/02-role.sh` must also be reconciled. |

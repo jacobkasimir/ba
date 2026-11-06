@@ -17,7 +17,7 @@ class AssistantService:
         # Per-process bound, not a distributed admission-control system.
         self._slots = asyncio.Semaphore(2)
 
-    async def answer(self, question: str) -> AssistantReply:
+    async def answer(self, question: str, language: str = "de") -> AssistantReply:
         try:
             async with asyncio.timeout(0.25):
                 await self._slots.acquire()
@@ -29,7 +29,7 @@ class AssistantService:
 
         try:
             async with asyncio.timeout(45):
-                return await self._answer(question)
+                return await self._answer(question, language)
         except TimeoutError:
             raise AssistantError(
                 504,
@@ -38,12 +38,21 @@ class AssistantService:
         finally:
             self._slots.release()
 
-    async def _answer(self, question: str) -> AssistantReply:
+    async def _answer(self, question: str, language: str) -> AssistantReply:
         context = await self._context_loader.load()
-        decision = await self._llm.propose(question, context)
+        decision = await self._llm.propose(question, context, language)
 
         if decision.action == "unsupported":
-            return AssistantReply(status="unsupported")
+            no_query = not decision.sql or not decision.sql.strip()
+            return AssistantReply(
+                status="unsupported",
+                proposed_sql=None if no_query else decision.sql,
+                reason=(
+                    decision.reason
+                    or ("No SQL query was proposed." if no_query else None)
+                ),
+                answer=decision.answer,
+            )
 
         # LLMDecision validation guarantees a non-empty string here.
         sql = decision.sql
@@ -57,6 +66,7 @@ class AssistantService:
                 return AssistantReply(
                     status="rejected",
                     proposed_sql=sql,
+                    reason=exc.message,
                 )
 
             raise AssistantError(

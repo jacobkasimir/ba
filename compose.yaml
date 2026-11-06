@@ -43,6 +43,7 @@ services:
       LLM_BASE_URL: "${LLM_BASE_URL:-}"
       LLM_API_KEY: "${LLM_API_KEY:-}"
       LLM_MODEL: "${LLM_MODEL:-}"
+      LLM_LOG_RAW_RESPONSES: "${LLM_LOG_RAW_RESPONSES:-false}"
 
     ports:
       # Application API on your Mac.
@@ -52,8 +53,18 @@ services:
       # Connection configuration is read-only inside the container.
       - ./config/mcp_servers.json:/app/config/mcp_servers.json:ro
 
+      # Serve frontend edits directly without rebuilding the application image.
+      - ./application/static:/app/static:ro
+
       # Application operational logs persist across container replacement.
       - application_logs:/app/logs
+
+      # Generated project documentation is shared read-only from the docs service.
+      - project_docs_site:/app/docs-site:ro
+
+    depends_on:
+      docs:
+        condition: service_healthy
 
     networks:
       - service_network
@@ -129,6 +140,29 @@ services:
 
     cap_drop:
       - ALL
+
+  docs:
+    build:
+      context: .
+      dockerfile: documentation/Dockerfile
+    restart: unless-stopped
+    network_mode: none
+    volumes:
+      - ./README.md:/workspace/README.md:ro
+      - ./mkdocs.yml:/workspace/mkdocs.yml:ro
+      - ./docs:/workspace/docs:ro
+      - ./evaluation/reports:/workspace/evaluation/reports:ro
+      - ./application/app:/source/application/app:ro
+      - ./gateway/app:/source/gateway/app:ro
+      # pdoc output is isolated from the source docs and ignored by Git.
+      - project_docs_api:/generated
+      - project_docs_site:/site
+    healthcheck:
+      test: ["CMD", "python", "-c", "from pathlib import Path; raise SystemExit(0 if Path('/site/index.html').is_file() else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
   postgres:
     image: postgres:16
     profiles: ["local-db"]
@@ -160,3 +194,5 @@ volumes:
   pgdata:
   gateway_audit:
   application_logs:
+  project_docs_site:
+  project_docs_api:

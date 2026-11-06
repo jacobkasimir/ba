@@ -39,7 +39,7 @@ export function sendChat(message, signal) {
   });
 }
 
-export async function askAssistant(question, signal) {
+export async function askAssistant(question, language, signal) {
   const response = await fetch("/api/assistant", {
     method: "POST",
     signal,
@@ -47,7 +47,7 @@ export async function askAssistant(question, signal) {
       "Content-Type": "application/json",
       "X-Query-Action": "submit",
     },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, language }),
   });
 
   let body;

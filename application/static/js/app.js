@@ -246,7 +246,7 @@ export function startApp() {
     const useAssistant = assistantMode.value === "assistant";
     try {
       const response = useAssistant
-        ? await askAssistant(text, controller.signal)
+        ? await askAssistant(text, settings.language, controller.signal)
         : await sendChat(text, controller.signal);
       setBackendUnavailable(false);
       if (useAssistant) {

@@ -140,7 +140,7 @@ export function renderMessage(message, { language, settings, onAction }) {
   }
 
   if (message.kind === "assistant-reply") {
-    return renderAssistantReply(message.payload, language);
+    return renderAssistantReply(message.payload, language, settings);
   }
 
   const payload = normalizePayload(message.payload || {});
@@ -186,7 +186,7 @@ export function renderMessage(message, { language, settings, onAction }) {
   return row;
 }
 
-function renderAssistantReply(reply, language) {
+function renderAssistantReply(reply, language, settings) {
   const row = element("article", "message-row assistant");
   const avatar = element("div", "message-avatar", "A");
   avatar.setAttribute("aria-hidden", "true");
@@ -199,9 +199,17 @@ function renderAssistantReply(reply, language) {
   const status = element("p", "message-content", t(language, knownStatus ? statusKey : "assistant.error.invalidResult"));
   card.append(status);
 
+  if (reply?.status === "unsupported" && typeof reply.answer === "string" && reply.answer.trim()) {
+    card.append(element("p", "message-content", reply.answer));
+  }
+
   if (reply?.proposed_sql !== null && typeof reply?.proposed_sql === "string") {
+    const proposalLabel = ["rejected", "unsupported"].includes(reply.status)
+      ? "assistant.sql.rejectedProposal"
+      : "assistant.sql.proposal";
     const details = element("details", "sql-details");
-    details.append(element("summary", "", t(language, "sql")));
+    details.open = Boolean(settings.showSql);
+    details.append(element("summary", "", t(language, proposalLabel)));
     details.append(element("pre", "sql-code", reply.proposed_sql));
     card.append(details);
   }
@@ -214,6 +222,32 @@ function renderAssistantReply(reply, language) {
     }
   } else if (reply?.status === "suppressed") {
     card.append(element("p", "message-content", t(language, "assistant.result.suppressed")));
+  }
+
+  if (["unsupported", "rejected", "suppressed"].includes(reply?.status)) {
+    if (reply.status === "unsupported" && !reply.proposed_sql) {
+      card.append(element(
+        "p",
+        "assistant-reason",
+        t(language, "assistant.reason.noQuery"),
+      ));
+    }
+    card.append(element(
+      "p",
+      "assistant-reason",
+      reply.reason || t(language, `assistant.reason.${reply.status}`),
+    ));
+
+    if (reply.status !== "unsupported" || reply.proposed_sql) {
+      const supportedQuery = element("section", "assistant-supported-query");
+      supportedQuery.append(element("h4", "", t(language, "assistant.sql.supported")));
+      supportedQuery.append(element(
+        "pre",
+        "sql-code",
+        "SELECT COUNT(*) FROM public.patient_dimension",
+      ));
+      card.append(supportedQuery);
+    }
   }
 
   body.append(card);

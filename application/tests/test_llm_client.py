@@ -56,12 +56,11 @@ def test_valid_structured_decision():
         completion("not-json"),
         completion(json.dumps({"action": "propose"})),
         completion(json.dumps({**GOOD_DECISION, "extra": True})),
-        completion(json.dumps({"action": "unsupported", "sql": "SELECT 1"})),
         completion(json.dumps(GOOD_DECISION), finish_reason="length"),
         completion(json.dumps(GOOD_DECISION), message_extra={"refusal": "No."}),
         completion(json.dumps(GOOD_DECISION), message_extra={"tool_calls": [{"id": "x"}]}),
     ],
-    ids=["invalid-json", "missing-field", "extra-field", "unsupported-with-sql", "truncated", "refusal", "tool-call"],
+    ids=["invalid-json", "missing-field", "extra-field", "truncated", "refusal", "tool-call"],
 )
 def test_invalid_provider_decisions_are_rejected(body):
     def handler(request):

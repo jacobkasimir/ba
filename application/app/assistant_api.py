@@ -50,7 +50,7 @@ async def ask_assistant(
         )
 
     try:
-        return await assistant.answer(body.question)
+        return await assistant.answer(body.question, body.language)
 
     except AssistantError as exc:
         return JSONResponse(
